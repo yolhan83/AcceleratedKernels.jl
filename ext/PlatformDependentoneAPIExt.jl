@@ -8,7 +8,7 @@ import AcceleratedKernels as AK
 # On oneAPI, use `cooperative=false` by default as on some Intel GPUs concurrent global writes hang
 # the device.
 function AK.any(
-    pred, v::AbstractArray, backend::oneBackend;
+    pred, v::AbstractArray, backend::oneAPIBackend;
 
     # CPU settings
     max_tasks=Threads.nthreads(),
@@ -35,7 +35,7 @@ end
 
 
 function AK.all(
-    pred, v::AbstractArray, backend::oneBackend;
+    pred, v::AbstractArray, backend::oneAPIBackend;
 
     # CPU settings
     max_tasks=Threads.nthreads(),
