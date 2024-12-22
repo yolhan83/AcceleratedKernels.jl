@@ -5,15 +5,12 @@ Sorting algorithms with similar interface and default settings as the Julia Base
 - `sortperm!`, `sortperm`
 - **Other names**: `sort`, `sort_team`, `sort_team_by_key`, `stable_sort` or variations in Kokkos, RAJA, Thrust that I know of.
 
-Function signature:
-```julia
-sort!(v::AbstractGPUVector;
-      lt=isless, by=identity, rev::Bool=false, order::Base.Order.Ordering=Base.Order.Forward,
-      block_size::Int=256, temp::Union{Nothing, AbstractGPUVector}=nothing)
-
-sortperm!(ix::AbstractGPUVector, v::AbstractGPUVector;
-          lt=isless, by=identity, rev::Bool=false, order::Base.Order.Ordering=Base.Order.Forward,
-          block_size::Int=256, temp::Union{Nothing, AbstractGPUVector}=nothing)
+Function signatures:
+```@docs
+AcceleratedKernels.sort!
+AcceleratedKernels.sort
+AcceleratedKernels.sortperm!
+AcceleratedKernels.sortperm
 ```
 
 Specific implementations that the interfaces above forward to:
@@ -21,28 +18,16 @@ Specific implementations that the interfaces above forward to:
 - `merge_sort_by_key!`, `merge_sort_by_key` - sort a vector of keys along with a "payload", a vector of corresponding values.
 - `merge_sortperm!`, `merge_sortperm`, `merge_sortperm_lowmem!`, `merge_sortperm_lowmem` - compute a sorting index permutation. 
 
-Function signature:
-```julia
-merge_sort!(v::AbstractGPUVector;
-            lt=(<), by=identity, rev::Bool=false, order::Ordering=Forward,
-            block_size::Int=256, temp::Union{Nothing, AbstractGPUVector}=nothing)
-
-merge_sort_by_key!(keys::AbstractGPUVector, values::AbstractGPUVector;
-                   lt=(<), by=identity, rev::Bool=false, order::Ordering=Forward,
-                   block_size::Int=256,
-                   temp_keys::Union{Nothing, AbstractGPUVector}=nothing,
-                   temp_values::Union{Nothing, AbstractGPUVector}=nothing)
-
-merge_sortperm!(ix::AbstractGPUVector, v::AbstractGPUVector;
-                lt=(<), by=identity, rev::Bool=false, order::Ordering=Forward,
-                inplace::Bool=false, block_size::Int=256,
-                temp_ix::Union{Nothing, AbstractGPUVector}=nothing,
-                temp_v::Union{Nothing, AbstractGPUVector}=nothing)
-
-merge_sortperm_lowmem!(ix::AbstractGPUVector, v::AbstractGPUVector;
-                       lt=(<), by=identity, rev::Bool=false, order::Ordering=Forward,
-                       block_size::Int=256,
-                       temp::Union{Nothing, AbstractGPUVector}=nothing)
+Function signatures:
+```@docs
+AcceleratedKernels.merge_sort!
+AcceleratedKernels.merge_sort
+AcceleratedKernels.merge_sort_by_key!
+AcceleratedKernels.merge_sort_by_key
+AcceleratedKernels.merge_sortperm!
+AcceleratedKernels.merge_sortperm
+AcceleratedKernels.merge_sortperm_lowmem!
+AcceleratedKernels.merge_sortperm_lowmem
 ```
 
 Example:

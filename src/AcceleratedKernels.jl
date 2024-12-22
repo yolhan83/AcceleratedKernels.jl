@@ -32,7 +32,7 @@ include("foreachindex.jl")
 include("map.jl")
 include("sort/sort.jl")
 include("reduce/reduce.jl")
-include("accumulate.jl")
+include("accumulate/accumulate.jl")
 include("searchsorted.jl")
 include("truth.jl")
 

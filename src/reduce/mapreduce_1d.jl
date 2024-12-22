@@ -101,11 +101,11 @@ end
 
 
 function mapreduce_1d(
-    f, op, src::AbstractGPUArray;
+    f, op, src::AbstractArray, backend::GPU;
     init,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUArray}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
     @argcheck 1 <= block_size <= 1024
@@ -140,7 +140,6 @@ function mapreduce_1d(
     src_view = @view src[1:end]
     dst_view = @view dst[1:blocks]
 
-    backend = get_backend(dst)
     kernel! = _mapreduce_block!(backend, block_size)
     kernel!(src_view, dst_view, f, op, init, ndrange=(block_size * blocks,))
 

@@ -9,8 +9,23 @@ include("merge_sortperm.jl")
 # Base radix sort before merging in parallel. We are shadowing the Base definitions, should we not?
 # Should we add an `alg` keyword argument like the Base one? I think we can leave that until we
 # have multiple sorting algorithms; it would not be a breaking change.
+
+
+"""
+    sort!(
+        v::AbstractArray, backend::Backend=get_backend(v);
+
+        lt=isless,
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function sort!(
-    v::AbstractGPUVector;
+    v::AbstractArray, backend::Backend=get_backend(v);
 
     lt=isless,
     by=identity,
@@ -18,34 +33,55 @@ function sort!(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
-    merge_sort!(
-        v,
+    _sort_impl!(
+        v, backend,
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size, temp=temp,
     )
 end
 
 
-function sort!(
-    v::AbstractVector;
+function _sort_impl!(
+    v::AbstractArray, backend::Backend;
 
     lt=isless,
     by=identity,
     rev::Bool=false,
-    order::Base.Order.Ordering=Base.Order.Forward,
+    order::Base.Order.Ordering=Base.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
-    # Fallback to Base before we have a CPU parallel sort
-    Base.sort!(v; lt=lt, by=by, rev=rev, order=order)
+    if backend isa GPU
+        merge_sort!(
+            v, backend,
+            lt=lt, by=by, rev=rev, order=order,
+            block_size=block_size, temp=temp,
+        )
+    else
+        # Fallback to Base before we have a CPU parallel sort
+        Base.sort!(v; lt=lt, by=by, rev=rev, order=order)
+    end
 end
 
 
+"""
+    sort(
+        v::AbstractArray, backend::Backend=get_backend(v);
+
+        lt=isless,
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function sort(
-    v::AbstractGPUVector;
+    v::AbstractArray, backend::Backend=get_backend(v);
 
     lt=isless,
     by=identity,
@@ -53,35 +89,36 @@ function sort(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
-    merge_sort(
-        v,
+    vcopy = copy(v)
+    sort!(
+        vcopy, backend,
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size, temp=temp,
     )
 end
 
 
-function sort(
-    v::AbstractVector;
+"""
+    sortperm!(
+        ix::AbstractArray,
+        v::AbstractArray,
+        backend::Backend=get_backend(v);
 
-    lt=isless,
-    by=identity,
-    rev::Bool=false,
-    order::Base.Order.Ordering=Base.Order.Forward,
+        lt=isless,
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
 
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractVector}=nothing,
-)
-    # Fallback to Base before we have a CPU parallel sort
-    Base.sort(v; lt=lt, by=by, rev=rev, order=order)
-end
-
-
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function sortperm!(
-    ix::AbstractGPUVector,
-    v::AbstractGPUVector;
+    ix::AbstractArray,
+    v::AbstractArray,
+    backend::Backend=get_backend(v);
 
     lt=isless,
     by=identity,
@@ -89,35 +126,59 @@ function sortperm!(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
-    merge_sortperm_lowmem!(
-        ix, v,
+    _sortperm_impl!(
+        ix, v, backend,
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size, temp=temp,
     )
 end
 
 
-function sortperm!(
-    ix::AbstractVector,
-    v::AbstractVector;
+function _sortperm_impl!(
+    ix::AbstractArray,
+    v::AbstractArray,
+    backend::Backend;
 
     lt=isless,
     by=identity,
     rev::Bool=false,
-    order::Base.Order.Ordering=Base.Order.Forward,
+    order::Base.Order.Ordering=Base.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
-    # Fallback to Base before we have a CPU parallel sortperm
-    Base.sortperm!(ix, v; lt=lt, by=by, rev=rev, order=order)
+    if backend isa GPU
+        merge_sortperm_lowmem!(
+            ix, v,
+            lt=lt, by=by, rev=rev, order=order,
+            block_size=block_size, temp=temp,
+        )
+    else
+        # Fallback to Base before we have a CPU parallel sortperm
+        Base.sortperm!(ix, v; lt=lt, by=by, rev=rev, order=order)
+    end
 end
 
 
+"""
+    sortperm(
+        v::AbstractArray,
+        backend::Backend=get_backend(v);
+
+        lt=isless,
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function sortperm(
-    v::AbstractGPUVector;
+    v::AbstractArray,
+    backend::Backend=get_backend(v);
 
     lt=isless,
     by=identity,
@@ -125,27 +186,12 @@ function sortperm(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
-    merge_sortperm_lowmem(
-        v,
+    ix = similar(v, Int)
+    sortperm!(
+        ix, v, backend,
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size, temp=temp,
     )
-end
-
-
-function sortperm(
-    v::AbstractVector;
-
-    lt=isless,
-    by=identity,
-    rev::Bool=false,
-    order::Base.Order.Ordering=Base.Order.Forward,
-
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractVector}=nothing,
-)
-    # Fallback to Base before we have a CPU parallel sortperm
-    Base.sortperm(v; lt=lt, by=by, rev=rev, order=order)
 end

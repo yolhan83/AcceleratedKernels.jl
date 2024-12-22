@@ -17,6 +17,7 @@ Random.seed!(0)
 
 v = MtlArray(1:100)
 
+
 @assert AK.any(x->x<0, v, cooperative=false) === false
 @assert AK.any(x->x>99, v, cooperative=false) === true
 println("simple any tests passed")

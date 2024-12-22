@@ -177,11 +177,11 @@ end
 
 
 function mapreduce_nd(
-    f, op, src::AbstractGPUArray;
+    f, op, src::AbstractArray, backend::GPU;
     init,
     dims::Int,
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUArray}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
     @argcheck 1 <= block_size <= 1024
 
@@ -286,7 +286,6 @@ function mapreduce_nd(
     #   - If the other dimensions have more elements (e.g. reduce(+, rand(3, 1000), dims=1)), we
     #     use a single thread per dst element - thus, a thread reduces the dims axis sequentially,
     #     while the other dimensions are processed in parallel, independently
-    backend = get_backend(dst)
     if dst_size >= src_sizes[dims]
         blocks = (dst_size + block_size - 1) ÷ block_size
         kernel! = _mapreduce_nd_by_thread!(backend, block_size)
