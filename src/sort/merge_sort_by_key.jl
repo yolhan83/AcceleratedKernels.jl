@@ -151,9 +151,26 @@ end
 end
 
 
+"""
+    merge_sort_by_key!(
+        keys::AbstractArray,
+        values::AbstractArray,
+        backend::Backend=get_backend(keys);
+
+        lt=isless,
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp_keys::Union{Nothing, AbstractArray}=nothing,
+        temp_values::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function merge_sort_by_key!(
-    keys::AbstractGPUVector,
-    values::AbstractGPUVector;
+    keys::AbstractArray,
+    values::AbstractArray,
+    backend::Backend=get_backend(keys);
 
     lt=isless,
     by=identity,
@@ -161,8 +178,8 @@ function merge_sort_by_key!(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp_keys::Union{Nothing, AbstractGPUVector}=nothing,
-    temp_values::Union{Nothing, AbstractGPUVector}=nothing,
+    temp_keys::Union{Nothing, AbstractArray}=nothing,
+    temp_values::Union{Nothing, AbstractArray}=nothing,
 )
     # Simple sanity checks
     @argcheck block_size > 0
@@ -181,7 +198,6 @@ function merge_sort_by_key!(
     comp = (x, y) -> Base.Order.lt(ord, x, y)
 
     # Block level
-    backend = get_backend(keys)
     blocks = (length(keys) + block_size * 2 - 1) ÷ (block_size * 2)
     _merge_sort_by_key_block!(backend, block_size)(keys, values, comp, ndrange=(block_size * blocks,))
 
@@ -221,9 +237,26 @@ function merge_sort_by_key!(
 end
 
 
+"""
+    merge_sort_by_key(
+        keys::AbstractGPUVector,
+        values::AbstractGPUVector,
+        backend::Backend=get_backend(keys);
+
+        lt=isless,
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp_keys::Union{Nothing, AbstractGPUVector}=nothing,
+        temp_values::Union{Nothing, AbstractGPUVector}=nothing,
+    )
+"""
 function merge_sort_by_key(
     keys::AbstractGPUVector,
-    values::AbstractGPUVector;
+    values::AbstractGPUVector,
+    backend::Backend=get_backend(keys);
 
     lt=isless,
     by=identity,
@@ -238,9 +271,8 @@ function merge_sort_by_key(
     values_copy = copy(values)
 
     merge_sort_by_key!(
-        keys_copy, values_copy,
+        keys_copy, values_copy, backend,
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size, temp_keys=temp_keys, temp_values=temp_values,
     )
 end
-

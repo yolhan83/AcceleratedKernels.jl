@@ -34,10 +34,32 @@ function _searchsortedlast(v, x, lo::T, hi::T, comp) where T<:Integer
 end
 
 
+"""
+    searchsortedfirst!(
+        ix::AbstractVector,
+        v::AbstractVector,
+        x::AbstractVector,
+        backend::Backend=get_backend(x);
+
+        by=identity, lt=isless, rev::Bool=false,
+
+        # CPU settings
+        scheduler=:threads,
+        max_tasks::Int=Threads.nthreads(),
+        min_elems::Int=1000,
+
+        # GPU settings
+        block_size::Int=256,
+    )
+
+Equivalent to applying `searchsortedfirst!` element-wise to each element of `x`. The CPU and GPU
+settings are the same as for [`foreachindex`](@ref).
+"""
 function searchsortedfirst!(
     ix::AbstractVector,
     v::AbstractVector,
-    x::AbstractVector;
+    x::AbstractVector,
+    backend::Backend=get_backend(x);
 
     by=identity, lt=isless, rev::Bool=false,
 
@@ -57,7 +79,7 @@ function searchsortedfirst!(
     comp = (x, y) -> Base.Order.lt(ord, x, y)
 
     foreachindex(
-        x,
+        x, backend,
         scheduler=scheduler, max_tasks=max_tasks, min_elems=min_elems,
         block_size=block_size,
     ) do i
@@ -66,9 +88,30 @@ function searchsortedfirst!(
 end
 
 
+"""
+    searchsortedfirst(
+        v::AbstractVector,
+        x::AbstractVector,
+        backend::Backend=get_backend(x);
+
+        by=identity, lt=isless, rev::Bool=false,
+
+        # CPU settings
+        scheduler=:threads,
+        max_tasks::Int=Threads.nthreads(),
+        min_elems::Int=1000,
+
+        # GPU settings
+        block_size::Int=256,
+    )
+
+Equivalent to applying `searchsortedfirst` element-wise to each element of `x`. The CPU and GPU
+settings are the same as for [`foreachindex`](@ref).
+"""
 function searchsortedfirst(
     v::AbstractVector,
-    x::AbstractVector;
+    x::AbstractVector,
+    backend::Backend=get_backend(x);
 
     by=identity, lt=isless, rev::Bool=false,
 
@@ -82,7 +125,7 @@ function searchsortedfirst(
 )
     ix = similar(x, Int)
     searchsortedfirst!(
-        ix, v, x;
+        ix, v, x, backend;
         by=by, lt=lt, rev=rev,
         scheduler=scheduler, max_tasks=max_tasks, min_elems=min_elems,
         block_size=block_size,
@@ -91,10 +134,32 @@ function searchsortedfirst(
 end
 
 
+"""
+    searchsortedlast!(
+        ix::AbstractVector,
+        v::AbstractVector,
+        x::AbstractVector,
+        backend::Backend=get_backend(x);
+
+        by=identity, lt=isless, rev::Bool=false,
+
+        # CPU settings
+        scheduler=:threads,
+        max_tasks::Int=Threads.nthreads(),
+        min_elems::Int=1000,
+
+        # GPU settings
+        block_size::Int=256,
+    )
+
+Equivalent to applying `searchsortedlast!` element-wise to each element of `x`. The CPU and GPU
+settings are the same as for [`foreachindex`](@ref).
+"""
 function searchsortedlast!(
     ix::AbstractVector,
     v::AbstractVector,
-    x::AbstractVector;
+    x::AbstractVector,
+    backend::Backend=get_backend(x);
 
     by=identity, lt=isless, rev::Bool=false,
 
@@ -106,7 +171,6 @@ function searchsortedlast!(
     # GPU settings
     block_size::Int=256,
 )
-
     # Simple sanity checks
     @argcheck block_size > 0
     @argcheck length(ix) == length(x)
@@ -116,7 +180,7 @@ function searchsortedlast!(
     comp = (x, y) -> Base.Order.lt(ord, x, y)
 
     foreachindex(
-        x,
+        x, backend,
         scheduler=scheduler, max_tasks=max_tasks, min_elems=min_elems,
         block_size=block_size,
     ) do i
@@ -125,9 +189,30 @@ function searchsortedlast!(
 end
 
 
+"""
+    searchsortedlast(
+        v::AbstractVector,
+        x::AbstractVector,
+        backend::Backend=get_backend(x);
+
+        by=identity, lt=isless, rev::Bool=false,
+
+        # CPU settings
+        scheduler=:threads,
+        max_tasks::Int=Threads.nthreads(),
+        min_elems::Int=1000,
+
+        # GPU settings
+        block_size::Int=256,
+    )
+
+Equivalent to applying `searchsortedlast` element-wise to each element of `x`. The CPU and GPU
+settings are the same as for [`foreachindex`](@ref).
+"""
 function searchsortedlast(
     v::AbstractVector,
-    x::AbstractVector;
+    x::AbstractVector,
+    backend::Backend=get_backend(x);
 
     by=identity, lt=isless, rev::Bool=false,
 
@@ -141,7 +226,7 @@ function searchsortedlast(
 )
     ix = similar(x, Int)
     searchsortedlast!(
-        ix, v, x;
+        ix, v, x, backend;
         by=by, lt=lt, rev=rev,
         scheduler=scheduler, max_tasks=max_tasks, min_elems=min_elems,
         block_size=block_size,

@@ -23,8 +23,7 @@ end
 
 """
     any(
-        pred,
-        v::AbstractArray;
+        pred, v::AbstractArray, backend::Backend=get_backend(v);
 
         # CPU settings
         max_tasks=Threads.nthreads(),
@@ -54,6 +53,10 @@ by concurrent writing to a global flag; there is only one platform we are aware 
 620 integrated graphics cards) where such writes hang. In such cases, set `cooperative=false` to
 use a `mapreduce` implementation, for which you can also use `temp` and `switch_below`.
 
+# Platform-Specific Notes
+On oneAPI, `cooperative=false` is the default as on some Intel GPUs concurrent global writes hang
+the device.
+
 # Examples
 ```julia
 import AcceleratedKernels as AK
@@ -64,8 +67,7 @@ AK.any(x -> x < 1, v)
 ```
 """
 function any(
-    pred,
-    v::AbstractGPUArray;
+    pred, v::AbstractArray, backend::Backend=get_backend(v);
 
     # CPU settings
     max_tasks=Threads.nthreads(),
@@ -79,34 +81,20 @@ function any(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    @argcheck block_size > 0
-
-    # Some platforms crash when multiple threads write to the same memory location in a global
-    # array (e.g. old Intel Graphics); if it is the same value, it is well-defined on others (e.g.
-    # CUDA). If not cooperative, we need to do a mapreduce
-    if cooperative
-        backend = get_backend(v)
-        out = KernelAbstractions.zeros(backend, Int8, 1)
-        _any_global!(backend, block_size)(out, pred, v, ndrange=length(v))
-        outh = @allowscalar(out[1])
-        return outh == 0 ? false : true
-    else
-        return mapreduce(
-            pred,
-            (x, y) -> x || y,
-            v;
-            init=false,
-            block_size=block_size,
-            temp=temp,
-            switch_below=switch_below,
-        )
-    end
+    _any_impl(
+        pred, v, backend;
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        block_size=block_size,
+        cooperative=cooperative,
+        temp=temp,
+        switch_below=switch_below,
+    )
 end
 
 
-function any(
-    pred,
-    v::AbstractArray;
+function _any_impl(
+    pred, v::AbstractArray, backend::Backend;
 
     # CPU settings
     max_tasks=Threads.nthreads(),
@@ -120,25 +108,52 @@ function any(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    overall = false
-    task_partition(length(v), max_tasks, min_elems) do irange
-        for i in irange
-            if pred(v[i])
-                # Again, this is technically a thread race, but it doesn't matter as all threads
-                # would write the same value; no data corruption can occur
-                overall = true
-                break
+    if backend isa GPU
+        @argcheck block_size > 0
+
+        # Some platforms crash when multiple threads write to the same memory location in a global
+        # array (e.g. old Intel Graphics); if it is the same value, it is well-defined on others (e.g.
+        # CUDA). If not cooperative, we need to do a mapreduce
+        if cooperative
+            out = KernelAbstractions.zeros(backend, Int8, 1)
+            _any_global!(backend, block_size)(out, pred, v, ndrange=length(v))
+            outh = @allowscalar(out[1])
+            return outh == 0 ? false : true
+        else
+            # FIXME: pass the backend when added
+            return mapreduce(
+                pred,
+                (x, y) -> x || y,
+                v,
+                backend;
+                init=false,
+                block_size=block_size,
+                temp=temp,
+                switch_below=switch_below,
+            )
+        end
+    else
+        overall = false
+        task_partition(length(v), max_tasks, min_elems) do irange
+            for i in irange
+                if pred(v[i])
+                    # Again, this is technically a thread race, but it doesn't matter as all threads
+                    # would write the same value; no data corruption can occur
+                    overall = true
+                    break
+                end
             end
         end
+        return overall
     end
-    return overall
 end
+
+
 
 
 """
     all(
-        pred,
-        v::AbstractGPUArray;
+        pred, v::AbstractArray, backend::Backend=get_backend(v);
 
         # CPU settings
         max_tasks=Threads.nthreads(),
@@ -168,6 +183,10 @@ by concurrent writing to a global flag; there is only one platform we are aware 
 620 integrated graphics cards) where such writes hang. In such cases, set `cooperative=false` to
 use a `mapreduce` implementation, for which you can also use `temp` and `switch_below`.
 
+# Platform-Specific Notes
+On oneAPI, `cooperative=false` is the default as on some Intel GPUs concurrent global writes hang
+the device.
+
 # Examples
 ```julia
 import AcceleratedKernels as AK
@@ -178,8 +197,7 @@ AK.all(x -> x > 0, v)
 ````
 """
 function all(
-    pred,
-    v::AbstractGPUArray;
+    pred, v::AbstractArray, backend::Backend=get_backend(v);
 
     # CPU settings
     max_tasks=Threads.nthreads(),
@@ -193,34 +211,20 @@ function all(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    @argcheck block_size > 0
-
-    # Some platforms crash when multiple threads write to the same memory location in a global
-    # array (e.g. old Intel Graphics); if it is the same value, it is well-defined on others (e.g.
-    # CUDA). If not cooperative, we need to do a mapreduce
-    if cooperative
-        backend = get_backend(v)
-        out = KernelAbstractions.zeros(backend, Int8, 1)
-        _any_global!(backend, block_size)(out, (!pred), v, ndrange=length(v))
-        outh = @allowscalar(out[1])
-        return outh == 0 ? true : false
-    else
-        return mapreduce(
-            pred,
-            (x, y) -> x && y,
-            v;
-            init=true,
-            block_size=block_size,
-            temp=temp,
-            switch_below=switch_below,
-        )
-    end
+    _all_impl(
+        pred, v, backend;
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        block_size=block_size,
+        cooperative=cooperative,
+        temp=temp,
+        switch_below=switch_below,
+    )
 end
 
 
-function all(
-    pred,
-    v::AbstractArray;
+function _all_impl(
+    pred, v::AbstractArray, backend::Backend;
 
     # CPU settings
     max_tasks=Threads.nthreads(),
@@ -234,14 +238,39 @@ function all(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    overall = true
-    task_partition(length(v), max_tasks, min_elems) do irange
-        for i in irange
-            if !pred(v[i])
-                overall = false
-                break
+    if backend isa GPU
+        @argcheck block_size > 0
+
+        # Some platforms crash when multiple threads write to the same memory location in a global
+        # array (e.g. old Intel Graphics); if it is the same value, it is well-defined on others (e.g.
+        # CUDA). If not cooperative, we need to do a mapreduce
+        if cooperative
+            out = KernelAbstractions.zeros(backend, Int8, 1)
+            _any_global!(backend, block_size)(out, (!pred), v, ndrange=length(v))
+            outh = @allowscalar(out[1])
+            return outh == 0 ? true : false
+        else
+            return mapreduce(
+                pred,
+                (x, y) -> x && y,
+                v,
+                backend;
+                init=true,
+                block_size=block_size,
+                temp=temp,
+                switch_below=switch_below,
+            )
+        end
+    else
+        overall = true
+        task_partition(length(v), max_tasks, min_elems) do irange
+            for i in irange
+                if !pred(v[i])
+                    overall = false
+                    break
+                end
             end
         end
+        return overall
     end
-    return overall
 end

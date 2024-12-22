@@ -7,7 +7,7 @@ include("mapreduce_nd.jl")
 
 """
     reduce(
-        op, src::AbstractArray;
+        op, src::AbstractArray, backend::Backend=get_backend(src);
         init,
         dims::Union{Nothing, Int}=nothing,
 
@@ -18,7 +18,7 @@ include("mapreduce_nd.jl")
 
         # GPU settings
         block_size::Int=256,
-        temp::Union{Nothing, AbstractGPUArray}=nothing,
+        temp::Union{Nothing, AbstractArray}=nothing,
         switch_below::Int=0,
     )
 
@@ -47,7 +47,11 @@ zero, check against `Base.reduce` for CPU arrays for exact behavior.
 The `switch_below` parameter controls the threshold below which the reduction is performed on the
 CPU and is only used for 1D reductions (i.e. `dims=nothing`).
 
-# Example
+# Platform-Specific Notes
+N-dimensional reductions on the CPU are not parallel yet ([issue](https://github.com/JuliaFolds2/OhMyThreads.jl/issues/128)),
+and defer to `Base.reduce`.
+
+# Examples
 Computing a sum, reducing down to a scalar that is copied to host:
 ```julia
 import AcceleratedKernels as AK
@@ -68,42 +72,7 @@ mcolsum = AK.reduce(+, m; init=zero(eltype(m)), dims=2)
 ```
 """
 function reduce(
-    op, src::AbstractGPUArray;
-    init,
-    dims::Union{Nothing, Int}=nothing,
-
-    # CPU settings
-    scheduler=:static,
-    max_tasks=Threads.nthreads(),
-    min_elems=1,
-
-    # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUArray}=nothing,
-    switch_below::Int=0,
-)
-    if isnothing(dims)
-        return reduce_1d(
-            op, src;
-            init=init,
-            block_size=block_size,
-            temp=temp,
-            switch_below=switch_below,
-        )
-    else
-        return reduce_nd(
-            op, src;
-            init=init,
-            dims=dims,
-            block_size=block_size,
-            temp=temp,
-        )
-    end
-end
-
-
-function reduce(
-    op, src::AbstractArray;
+    op, src::AbstractArray, backend::Backend=get_backend(src);
     init,
     dims::Union{Nothing, Int}=nothing,
 
@@ -117,28 +86,79 @@ function reduce(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    if isnothing(dims)
-        num_elems = length(src)
-        num_tasks = min(max_tasks, num_elems ÷ min_elems)
-        if num_tasks <= 1
-            return Base.reduce(op, src; init=init)
+    _reduce_impl(
+        op, src, backend;
+        init=init,
+        dims=dims,
+        scheduler=scheduler,
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        block_size=block_size,
+        temp=temp,
+        switch_below=switch_below,
+    )
+end
+
+
+function _reduce_impl(
+    op, src::AbstractArray, backend;
+    init,
+    dims::Union{Nothing, Int}=nothing,
+
+    # CPU settings
+    scheduler=:static,
+    max_tasks=Threads.nthreads(),
+    min_elems=1,
+
+    # GPU settings
+    block_size::Int=256,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    switch_below::Int=0,
+)
+    if backend isa GPU
+        if isnothing(dims)
+            return reduce_1d(
+                op, src, backend;
+                init=init,
+                block_size=block_size,
+                temp=temp,
+                switch_below=switch_below,
+            )
+        else
+            return reduce_nd(
+                op, src, backend;
+                init=init,
+                dims=dims,
+                block_size=block_size,
+                temp=temp,
+            )
         end
-        return OMT.treduce(
-            op, src, init=init,
-            scheduler=scheduler,
-            outputtype=typeof(init),
-            nchunks=num_tasks,
-        )
     else
-        # FIXME: waiting on OhMyThreads.jl for n-dimensional reduction
-        return Base.reduce(op, src; init=init, dims=dims)
+        if isnothing(dims)
+            num_elems = length(src)
+            num_tasks = min(max_tasks, num_elems ÷ min_elems)
+            if num_tasks <= 1
+                return Base.reduce(op, src; init=init)
+            end
+            return OMT.treduce(
+                op, src, init=init,
+                scheduler=scheduler,
+                outputtype=typeof(init),
+                nchunks=num_tasks,
+            )
+        else
+            # FIXME: waiting on OhMyThreads.jl for n-dimensional reduction
+            return Base.reduce(op, src; init=init, dims=dims)
+        end
     end
 end
 
 
+
+
 """
     mapreduce(
-        f, op, src::AbstractArray;
+        f, op, src::AbstractArray, backend::Backend=get_backend(src);
         init,
         dims::Union{Nothing, Int}=nothing,
 
@@ -200,42 +220,7 @@ mcolsumsq = AK.mapreduce(f, +, m; init=zero(eltype(m)), dims=2)
 ```
 """
 function mapreduce(
-    f, op, src::AbstractGPUArray;
-    init,
-    dims::Union{Nothing, Int}=nothing,
-
-    # CPU settings
-    scheduler=:static,
-    max_tasks=Threads.nthreads(),
-    min_elems=1,
-
-    # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUArray}=nothing,
-    switch_below::Int=0,
-)
-    if isnothing(dims)
-        return mapreduce_1d(
-            f, op, src;
-            init=init,
-            block_size=block_size,
-            temp=temp,
-            switch_below=switch_below,
-        )
-    else
-        return mapreduce_nd(
-            f, op, src;
-            init=init,
-            dims=dims,
-            block_size=block_size,
-            temp=temp,
-        )
-    end
-end
-
-
-function mapreduce(
-    f, op, src::AbstractArray;
+    f, op, src::AbstractArray, backend::Backend=get_backend(src);
     init,
     dims::Union{Nothing, Int}=nothing,
 
@@ -249,20 +234,69 @@ function mapreduce(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    if isnothing(dims)
-        num_elems = length(src)
-        num_tasks = min(max_tasks, num_elems ÷ min_elems)
-        if num_tasks <= 1
-            return Base.mapreduce(f, op, src; init=init)
+    _mapreduce_impl(
+        f, op, src, backend;
+        init=init,
+        dims=dims,
+        scheduler=scheduler,
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        block_size=block_size,
+        temp=temp,
+        switch_below=switch_below,
+    )
+end
+
+
+function _mapreduce_impl(
+    f, op, src::AbstractArray, backend::Backend;
+    init,
+    dims::Union{Nothing, Int}=nothing,
+
+    # CPU settings
+    scheduler=:static,
+    max_tasks=Threads.nthreads(),
+    min_elems=1,
+
+    # GPU settings
+    block_size::Int=256,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    switch_below::Int=0,
+)
+    if backend isa GPU
+        if isnothing(dims)
+            return mapreduce_1d(
+                f, op, src, backend;
+                init=init,
+                block_size=block_size,
+                temp=temp,
+                switch_below=switch_below,
+            )
+        else
+            return mapreduce_nd(
+                f, op, src, backend;
+                init=init,
+                dims=dims,
+                block_size=block_size,
+                temp=temp,
+            )
         end
-        return OMT.tmapreduce(
-            f, op, src, init=init,
-            scheduler=scheduler,
-            outputtype=typeof(init),
-            nchunks=num_tasks,
-        )
     else
-        # FIXME: waiting on OhMyThreads.jl for n-dimensional reduction
-        return Base.mapreduce(f, op, src; init=init, dims=dims)
+        if isnothing(dims)
+            num_elems = length(src)
+            num_tasks = min(max_tasks, num_elems ÷ min_elems)
+            if num_tasks <= 1
+                return Base.mapreduce(f, op, src; init=init)
+            end
+            return OMT.tmapreduce(
+                f, op, src, init=init,
+                scheduler=scheduler,
+                outputtype=typeof(init),
+                nchunks=num_tasks,
+            )
+        else
+            # FIXME: waiting on OhMyThreads.jl for n-dimensional reduction
+            return Base.mapreduce(f, op, src; init=init, dims=dims)
+        end
     end
 end

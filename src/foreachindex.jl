@@ -149,20 +149,18 @@ function foreachindex(
     # GPU settings
     block_size=256,
 )
-    if backend isa CPU
+    if backend isa GPU
+        _forindices_gpu(
+            f, eachindex(itr), backend;
+            block_size=block_size,
+        )
+    else
         _forindices_cpu(
             f, eachindex(itr), backend;
             scheduler=scheduler,
             max_tasks=max_tasks,
             min_elems=min_elems,
         )
-    elseif backend isa GPU
-        _forindices_gpu(
-            f, eachindex(itr), backend;
-            block_size=block_size,
-        )
-    else
-        throw(ArgumentError("Backend must be `CPU` or `<:GPU`. Received $backend"))
     end
 end
 
@@ -262,19 +260,17 @@ function foraxes(
         )
     end
 
-    if backend isa CPU
+    if backend isa GPU
+        _forindices_gpu(
+            f, axes(itr, dims), backend;
+            block_size=block_size,
+        )
+    else
         _forindices_cpu(
             f, axes(itr, dims), backend;
             scheduler=scheduler,
             max_tasks=max_tasks,
             min_elems=min_elems,
         )
-    elseif backend isa GPU
-        _forindices_gpu(
-            f, axes(itr, dims), backend;
-            block_size=block_size,
-        )
-    else
-        throw(ArgumentError("Backend must be `CPU` or `<:GPU`. Received $backend"))
     end
 end

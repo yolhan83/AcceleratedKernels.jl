@@ -1,6 +1,6 @@
 """
     map!(
-        f, dst::AbstractArray, src::AbstractArray;
+        f, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(src);
 
         # CPU settings
         scheduler=:threads,
@@ -8,7 +8,7 @@
         min_elems=1,
 
         # GPU settings
-        block_size=256,    
+        block_size=256,
     )
 
 Apply the function `f` to each element of `src` in parallel and store the result in `dst`. The
@@ -28,7 +28,7 @@ end
 ```
 """
 function map!(
-    f, dst::AbstractArray, src::AbstractArray;
+    f, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(src);
 
     # CPU settings
     scheduler=:threads,
@@ -36,11 +36,11 @@ function map!(
     min_elems=1,
 
     # GPU settings
-    block_size=256,    
+    block_size=256,
 )
     @argcheck length(dst) == length(src)
     foreachindex(
-        src,
+        src, backend,
         scheduler=scheduler,
         max_tasks=max_tasks,
         min_elems=min_elems,
@@ -54,7 +54,7 @@ end
 
 """
     map(
-        f, src::AbstractArray;
+        f, src::AbstractArray, backend::Backend=get_backend(src);
 
         # CPU settings
         scheduler=:threads,
@@ -70,7 +70,7 @@ changes the `eltype`, allocate `dst` separately and call [`map!`](@ref)). The CP
 settings are the same as for [`foreachindex`](@ref).
 """
 function map(
-    f, src::AbstractArray;
+    f, src::AbstractArray, backend::Backend=get_backend(src);
 
     # CPU settings
     scheduler=:threads,
@@ -82,7 +82,7 @@ function map(
 )
     dst = similar(src)
     map!(
-        f, dst, src,
+        f, dst, src, backend,
         scheduler=scheduler,
         max_tasks=max_tasks,
         min_elems=min_elems,

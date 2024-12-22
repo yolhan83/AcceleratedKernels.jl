@@ -102,11 +102,11 @@ end
 
 
 function reduce_1d(
-    op, src::AbstractGPUArray;
+    op, src::AbstractArray, backend::GPU;
     init,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUArray}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
     @argcheck 1 <= block_size <= 1024
@@ -126,7 +126,6 @@ function reduce_1d(
     blocks = (len + num_per_block - 1) ÷ num_per_block
 
     if !isnothing(temp)
-        @argcheck get_backend(temp) === get_backend(src)
         @argcheck length(temp) >= blocks * 2
         dst = temp
     else
@@ -137,7 +136,6 @@ function reduce_1d(
     src_view = @view src[1:end]
     dst_view = @view dst[1:blocks]
 
-    backend = get_backend(dst)
     kernel! = _reduce_block!(backend, block_size)
     kernel!(src_view, dst_view, op, init, ndrange=(block_size * blocks,))
 

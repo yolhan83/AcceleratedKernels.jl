@@ -192,51 +192,15 @@ end
 end
 
 
-"""
-    accumulate!(
-        op,
-        v::AbstractGPUVector;
-        init,
-        inclusive::Bool=true,
-
-        block_size::Int=256,
-        temp::Union{Nothing, AbstractGPUVector}=nothing,
-        temp_flags::Union{Nothing, AbstractGPUVector}=nothing,
-    )
-
-Compute accumulated running totals along a sequence by applying a binary operator to all elements
-up to the current one; often used in GPU programming as a first step in finding / extracting
-subsets of data.
-
-**Other names**: prefix sum, `thrust::scan`, cumulative sum; inclusive (or exclusive) if the first
-element is included in the accumulation (or not).
-
-The `block_size` should be a power of 2 and greater than 0. The temporaries `temp` and `temp_flags`
-should both have at least
-`(length(v) + 2 * block_size - 1) ÷ (2 * block_size)` elements; `eltype(v) === eltype(temp)`; the
-elements in `temp_flags` can be any integers, but `Int8` is used by default to reduce memory usage. 
-
-# Examples
-Example computing an inclusive prefix sum (the typical GPU "scan"):
-```julia
-import AcceleratedKernels as AK
-using oneAPI
-
-v = oneAPI.ones(Int32, 100_000)
-AK.accumulate!(+, v, init=0)
-```
-"""
-function accumulate!(
-    op,
-    v::AbstractGPUVector;
+function accumulate_1d!(
+    op, v::AbstractArray, backend::GPU;
     init,
     inclusive::Bool=true,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
-    temp_flags::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
-
     # Correctness checks
     @argcheck block_size > 0
     @argcheck ispow2(block_size)
@@ -266,7 +230,6 @@ function accumulate!(
         flags = temp_flags
     end
 
-    backend = get_backend(v)
     kernel1! = _accumulate_block!(backend, block_size)
     kernel1!(op, v, init, inclusive, flags, prefixes,
              ndrange=num_blocks * block_size)
@@ -279,65 +242,3 @@ function accumulate!(
 
     return v
 end
-
-
-function accumulate!(
-    op,
-    v::AbstractVector;
-    init,
-    inclusive::Bool=true,
-
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractVector}=nothing,
-    temp_flags::Union{Nothing, AbstractVector}=nothing,
-)
-    # Simple single-threaded CPU implementation - FIXME: implement taccumulate in OhMyThreads.jl
-    if length(v) == 0
-        return v
-    end
-    if inclusive
-        running = v[begin]
-        for i in firstindex(v) + 1:lastindex(v)
-            running = op(running, v[i])
-            v[i] = running
-        end
-    else
-        running = init
-        for i in eachindex(v)
-            v[i], running = running, op(running, v[i])
-        end
-    end
-    return v
-end
-
-
-"""
-    accumulate(
-        op,
-        v::AbstractVector;
-        init,
-        inclusive::Bool=true,
-
-        block_size::Int=256,
-        temp::Union{Nothing, AbstractVector}=nothing,
-        temp_flags::Union{Nothing, AbstractVector}=nothing,
-    )
-
-Out-of-place version of [`accumulate!`](@ref).
-"""
-function accumulate(
-    op,
-    v::AbstractVector;
-    init,
-    inclusive::Bool=true,
-
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractVector}=nothing,
-    temp_flags::Union{Nothing, AbstractVector}=nothing,
-)
-    vcopy = copy(v)
-    accumulate!(op, vcopy; init=init, inclusive=inclusive,
-                block_size=block_size, temp=temp, temp_flags=temp_flags)
-    vcopy
-end
-

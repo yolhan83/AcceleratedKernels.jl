@@ -1,6 +1,24 @@
+"""
+    merge_sortperm!(
+        ix::AbstractArray,
+        v::AbstractArray,
+        backend::Backend=get_backend(v);
+
+        lt=(<),
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        inplace::Bool=false,
+        block_size::Int=256,
+        temp_ix::Union{Nothing, AbstractArray}=nothing,
+        temp_v::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function merge_sortperm!(
-    ix::AbstractGPUVector,
-    v::AbstractGPUVector;
+    ix::AbstractArray,
+    v::AbstractArray,
+    backend::Backend=get_backend(v);
 
     lt=(<),
     by=identity,
@@ -9,8 +27,8 @@ function merge_sortperm!(
 
     inplace::Bool=false,
     block_size::Int=256,
-    temp_ix::Union{Nothing, AbstractGPUVector}=nothing,
-    temp_v::Union{Nothing, AbstractGPUVector}=nothing,
+    temp_ix::Union{Nothing, AbstractArray}=nothing,
+    temp_v::Union{Nothing, AbstractArray}=nothing,
 )
     # Simple sanity checks
     @argcheck block_size > 0
@@ -32,7 +50,7 @@ function merge_sortperm!(
     keys = inplace ? v : copy(v)
 
     merge_sort_by_key!(
-        keys, ix;
+        keys, ix, backend;
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size,
         temp_keys=temp_v, temp_values=temp_ix,
@@ -42,8 +60,23 @@ function merge_sortperm!(
 end
 
 
+"""
+    merge_sortperm(
+        v::AbstractArray, backend::Backend=get_backend(v);
+
+        lt=(<),
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        inplace::Bool=false,
+        block_size::Int=256,
+        temp_ix::Union{Nothing, AbstractArray}=nothing,
+        temp_v::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function merge_sortperm(
-    v::AbstractGPUVector;
+    v::AbstractArray, backend::Backend=get_backend(v);
 
     lt=(<),
     by=identity,
@@ -52,21 +85,37 @@ function merge_sortperm(
 
     inplace::Bool=false,
     block_size::Int=256,
-    temp_ix::Union{Nothing, AbstractGPUVector}=nothing,
-    temp_v::Union{Nothing, AbstractGPUVector}=nothing,
+    temp_ix::Union{Nothing, AbstractArray}=nothing,
+    temp_v::Union{Nothing, AbstractArray}=nothing,
 )
     ix = similar(v, Int)
     merge_sortperm!(
-        ix, v,
+        ix, v, backend,
         lt=lt, by=by, rev=rev, order=order,
         inplace=inplace, block_size=block_size, temp_ix=temp_ix, temp_v=temp_v,
     )
 end
 
 
+"""
+    merge_sortperm_lowmem!(
+        ix::AbstractArray,
+        v::AbstractArray,
+        backend::Backend=get_backend(v);
+
+        lt=(<),
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function merge_sortperm_lowmem!(
-    ix::AbstractGPUVector,
-    v::AbstractGPUVector;
+    ix::AbstractArray,
+    v::AbstractArray,
+    backend::Backend=get_backend(v);
 
     lt=(<),
     by=identity,
@@ -74,7 +123,7 @@ function merge_sortperm_lowmem!(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
     # Simple sanity checks
     @argcheck block_size > 0
@@ -94,7 +143,6 @@ function merge_sortperm_lowmem!(
     comp = (ix, iy) -> Base.Order.lt(ord, v[ix], v[iy])
 
     # Block level
-    backend = get_backend(ix)
     blocks = (length(ix) + block_size * 2 - 1) ÷ (block_size * 2)
     _merge_sort_block!(backend, block_size)(ix, comp, ndrange=(block_size * blocks,))
 
@@ -129,8 +177,21 @@ function merge_sortperm_lowmem!(
 end
 
 
+"""
+    merge_sortperm_lowmem(
+        v::AbstractArray, backend::Backend=get_backend(v);
+
+        lt=(<),
+        by=identity,
+        rev::Bool=false,
+        order::Base.Order.Ordering=Base.Order.Forward,
+
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+    )
+"""
 function merge_sortperm_lowmem(
-    v::AbstractGPUVector;
+    v::AbstractArray, backend::Backend=get_backend(v);
 
     lt=(<),
     by=identity,
@@ -138,13 +199,12 @@ function merge_sortperm_lowmem(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractArray}=nothing,
 )
     ix = similar(v, Int)
     merge_sortperm_lowmem!(
-        ix, v,
+        ix, v, backend,
         lt=lt, by=by, rev=rev, order=order,
         block_size=block_size, temp=temp,
     )
 end
-
