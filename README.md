@@ -139,8 +139,6 @@ Julia v1.11
 
 [Metal](https://github.com/JuliaGPU/Metal.jl)
 
-[Known Issue with `accumulate` Only](https://github.com/JuliaGPU/AcceleratedKernels.jl/issues/10) 
-
 </td>
 <td>
 
