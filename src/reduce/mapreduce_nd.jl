@@ -23,8 +23,6 @@
     iblock = @index(Group, Linear) - 0x1
     ithread = @index(Local, Linear) - 0x1
 
-    tid = ithread + iblock * N
-
     # Each thread handles one output element
     tid = ithread + iblock * N
     if tid < output_size

@@ -126,8 +126,16 @@ end
 
     # Write this block's final prefix to global array and set flag to "block prefix computed"
     if bi == 0x2 * block_size - 0x1
-        prefixes[iblock + 0x1] = temp[bi + bank_offset_b + 0x1]
-        flags[iblock + 0x1] = ACC_FLAG_P
+
+        # Known at compile-time; used in the first pass of the ScanPrefixes algorithm
+        if !isnothing(prefixes)
+            prefixes[iblock + 0x1] = temp[bi + bank_offset_b + 0x1]
+        end
+
+        # Known at compile-time; used only in the DecoupledLookback algorithm
+        if !isnothing(flags)
+            flags[iblock + 0x1] = ACC_FLAG_P
+        end
     end
 
     if block_offset + ai < len
@@ -192,8 +200,52 @@ end
 end
 
 
+@kernel cpu=false inbounds=true function _accumulate_previous_coupled_preblocks!(op, v, prefixes)
+
+    # No decoupled lookback
+    len = length(v)
+    block_size = @groupsize()[1]
+
+    # NOTE: for many index calculations in this library, computation using zero-indexing leads to
+    # fewer operations (also code is transpiled to CUDA / ROCm / oneAPI / Metal code which do zero
+    # indexing). Internal calculations will be done using zero indexing except when actually
+    # accessing memory. As with C, the lower bound is inclusive, the upper bound exclusive.
+
+    # Group (block) and local (thread) indices
+    iblock = @index(Group, Linear) - 0x1 + 0x1              # Skipping first block
+    ithread = @index(Local, Linear) - 0x1
+    block_offset = iblock * block_size * 0x2                # Processing two elements per thread
+
+    # Each block looks back to find running prefix sum
+    running_prefix = prefixes[iblock - 0x1 + 0x1]
+
+    # The prefixes were pre-accumulated, which means (for block_size=N):
+    #   - If there were N or fewer prefixes (so fewer than N*N elements in v to begin with), the
+    #     prefixes were fully accumulated and we can use them directly.
+    #   - If there were more than N prefixes, each chunk of N prefixes was accumulated, but not
+    #     along the chunks. We need to accumulate the prefixes of the previous chunks into
+    #     running_prefix.
+    num_preblocks = (iblock - 0x1) ÷ (block_size * 0x2)
+    for i in 0x1:num_preblocks
+        running_prefix = op(running_prefix, prefixes[i * block_size * 0x2])
+    end
+
+    # Now we have aggregate prefix of all previous blocks, add it to all our elements
+    ai = ithread
+    if block_offset + ai < len
+        v[block_offset + ai + 0x1] = op(running_prefix, v[block_offset + ai + 0x1])
+    end
+
+    bi = ithread + block_size
+    if block_offset + bi < len
+        v[block_offset + bi + 0x1] = op(running_prefix, v[block_offset + bi + 0x1])
+    end
+end
+
+
+# DecoupledLookback algorithm
 function accumulate_1d!(
-    op, v::AbstractArray, backend::GPU;
+    op, v::AbstractArray, backend::GPU, ::DecoupledLookback;
     init,
     inclusive::Bool=true,
 
@@ -237,6 +289,59 @@ function accumulate_1d!(
     if num_blocks > 1
         kernel2! = _accumulate_previous!(backend, block_size)
         kernel2!(op, v, init, flags, prefixes,
+                 ndrange=(num_blocks - 1) * block_size)
+    end
+
+    return v
+end
+
+
+# ScanPrefixes algorithm
+function accumulate_1d!(
+    op, v::AbstractArray, backend::GPU, ::ScanPrefixes;
+    init,
+    inclusive::Bool=true,
+
+    block_size::Int=256,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    temp_flags::Union{Nothing, AbstractArray}=nothing,
+)
+    # Correctness checks
+    @argcheck block_size > 0
+    @argcheck ispow2(block_size)
+
+    # Nothing to accumulate
+    if length(v) == 0
+        return v
+    end
+
+    # Each thread will process two elements
+    elems_per_block = block_size * 2
+    num_blocks = (length(v) + elems_per_block - 1) ÷ elems_per_block
+
+    if isnothing(temp)
+        prefixes = similar(v, eltype(v), num_blocks)
+    else
+        @argcheck eltype(temp) === eltype(v)
+        @argcheck length(temp) >= num_blocks
+        prefixes = temp
+    end
+
+    kernel1! = _accumulate_block!(backend, block_size)
+    kernel1!(op, v, init, inclusive, nothing, prefixes,
+             ndrange=num_blocks * block_size)
+
+    if num_blocks > 1
+
+        # Accumulate prefixes of all blocks
+        num_blocks_prefixes = (length(prefixes) + elems_per_block - 1) ÷ elems_per_block
+        kernel1!(op, prefixes, init, true, nothing, nothing,
+                 ndrange=num_blocks_prefixes * block_size)
+
+        # Prefixes are pre-accumulated (completely accumulated if num_blocks_prefixes == 1, or
+        # partially, which we will account for in the coupled lookback)
+        kernel2! = _accumulate_previous_coupled_preblocks!(backend, block_size)
+        kernel2!(op, v, prefixes,
                  ndrange=(num_blocks - 1) * block_size)
     end
 

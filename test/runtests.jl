@@ -11,34 +11,34 @@ import Pkg
 if "--CUDA" in ARGS
     Pkg.add("CUDA")
     using CUDA
-    display(CUDA.versioninfo())
+    CUDA.versioninfo()
     const backend = CUDABackend()
 elseif "--oneAPI" in ARGS
     Pkg.add("oneAPI")
     using oneAPI
-    display(oneAPI.versioninfo())
+    oneAPI.versioninfo()
     const backend = oneAPIBackend()
 elseif "--AMDGPU" in ARGS
     Pkg.add("AMDGPU")
     using AMDGPU
-    display(AMDGPU.versioninfo())
+    AMDGPU.versioninfo()
     const backend = ROCBackend()
 elseif "--Metal" in ARGS
     Pkg.add("Metal")
     using Metal
-    display(Metal.versioninfo())
+    Metal.versioninfo()
     const backend = MetalBackend()
 elseif "--OpenCL" in ARGS
     Pkg.add(name="OpenCL", rev="master")
     Pkg.add("pocl_jll")
     using pocl_jll
     using OpenCL
-    display(OpenCL.versioninfo())
+    OpenCL.versioninfo()
     const backend = OpenCLBackend()
 elseif !@isdefined(backend)
     # Otherwise do CPU tests
     using InteractiveUtils
-    display(InteractiveUtils.versioninfo())
+    InteractiveUtils.versioninfo()
     const backend = CPU()
 end
 
@@ -1056,6 +1056,15 @@ end
         x = array_from_host(rand(1:1000, num_elems), Int32)
         y = copy(x)
         AK.accumulate!(+, y; init=0)
+        @test all(Array(y) .== accumulate(+, Array(x)))
+    end
+
+    # Stress-testing small block sizes -> many blocks
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        x = array_from_host(rand(1:1000, num_elems), Int32)
+        y = copy(x)
+        AK.accumulate!(+, y; init=0, block_size=8)
         @test all(Array(y) .== accumulate(+, Array(x)))
     end
 
