@@ -1064,7 +1064,7 @@ end
         num_elems = rand(1:100_000)
         x = array_from_host(rand(1:1000, num_elems), Int32)
         y = copy(x)
-        AK.accumulate!(+, y; init=0, block_size=8)
+        AK.accumulate!(+, y; init=0, block_size=16)
         @test all(Array(y) .== accumulate(+, Array(x)))
     end
 

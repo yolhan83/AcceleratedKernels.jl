@@ -7,7 +7,7 @@ Random.seed!(0)
 
 
 function akacc(v)
-    va = AK.accumulate(+, v, init=zero(eltype(v)), block_size=512)
+    va = AK.accumulate(+, v, init=zero(eltype(v)), block_size=1024)
     Metal.synchronize()
     va
 end
