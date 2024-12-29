@@ -104,6 +104,7 @@ end
     # block_size and keep track of previous chunks' running prefix
     ichunk = typeof(iblock)(0)
     num_chunks = (length_dims + block_size - 0x1) ÷ block_size
+    total = init
 
     if ithread == 0x0
         running_prefix[0x1] = init
