@@ -4,14 +4,49 @@ struct DecoupledLookback <: AccumulateAlgorithm end
 struct ScanPrefixes <: AccumulateAlgorithm end
 
 
+# Helpers
+# Check the given dst is compatible with src and init
+function _accumulate_check_types(dst, src, init)
+    eltype(dst) === eltype(src) && return
+    eltype(dst) === typeof(init) && return
+    eltype(dst) === promote_type(eltype(src), typeof(init)) && return
+
+    throw(ArgumentError(
+        """
+        destination array type `$(eltype(dst))` (temp) is incompatible with source array type
+        `$(eltype(src))` and initial value type `$(typeof(init))`; eltype(dst) must be either
+        like eltype(src) or typeof(init) or promote_type(eltype(src), typeof(init)).
+        """
+    ))
+end
+
+
 # Implementations, then interfaces
 include("accumulate_1d.jl")
+include("accumulate_nd.jl")
+include("accumulate_cpu.jl")
 
 
 """
     accumulate!(
         op, v::AbstractArray, backend::Backend=get_backend(v);
         init,
+        dims::Union{Nothing, Int}=nothing,
+        inclusive::Bool=true,
+
+        # Algorithm choice
+        alg::AccumulateAlgorithm=DecoupledLookback(),
+
+        # GPU settings
+        block_size::Int=256,
+        temp::Union{Nothing, AbstractArray}=nothing,
+        temp_flags::Union{Nothing, AbstractArray}=nothing,
+    )
+
+    accumulate!(
+        op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(v);
+        init,
+        dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
         # Algorithm choice
@@ -30,26 +65,39 @@ subsets of data.
 **Other names**: prefix sum, `thrust::scan`, cumulative sum; inclusive (or exclusive) if the first
 element is included in the accumulation (or not).
 
-The `block_size` should be a power of 2 and greater than 0. The temporaries `temp` and `temp_flags`
-should both have at least
-`(length(v) + 2 * block_size - 1) ÷ (2 * block_size)` elements; `eltype(v) === eltype(temp)`; the
-elements in `temp_flags` can be any integers, but `Int8` is used by default to reduce memory usage.
+For compatibility with the `Base.accumulate!` function, we provide the two-array interface too, but
+we do not need the constraint of `dst` and `src` being different; to minimise memory use, we
+recommend using the single-array interface (the first one above).
 
-The `alg` can be one of the following:
+## CPU 
+The CPU implementation is currently single-threaded; we are waiting on a multithreaded
+implementation in OhMyThreads.jl ([issue](https://github.com/JuliaFolds2/OhMyThreads.jl/issues/129)).
+
+## GPU 
+For the 1D case (`dims=nothing`), the `alg` can be one of the following:
 - `DecoupledLookback()`: the default algorithm, using opportunistic lookback to reuse earlier
   blocks' results; requires device-level memory consistency guarantees, which Apple Metal does not
   provide.
-- `ScanPrefixes()`: a simpler algorithm that scans the prefixes of each block, with no lookback;
-  `temp_flags` is not used in this case.
+- `ScanPrefixes()`: a simpler algorithm that scans the prefixes of each block, with no lookback; it
+  has similar performance as `DecoupledLookback()` for large block sizes and small to medium arrays,
+  but poorer scaling for many blocks; there is no performance degradation below `block_size^2`
+  elements.
+
+A different, unique algorithm is used for the multi-dimensional case (`dims` is an integer).
+
+The `block_size` should be a power of 2 and greater than 0.
+
+The temporaries are only used for the 1D case (`dims=nothing`): `temp` stores per-block aggregates;
+`temp_flags` is only used for the `DecoupledLookback()` algorithm for flagging if blocks are ready;
+they should both have at least `(length(v) + 2 * block_size - 1) ÷ (2 * block_size)` elements; also,
+`eltype(v) === eltype(temp)` is required; the elements in `temp_flags` can be any integers, but
+`Int8` is used by default to reduce memory usage.
 
 # Platform-Specific Notes
 On Metal, the `alg=ScanPrefixes()` algorithm is used by default, as Apple Metal GPUs do not have
 strong enough memory consistency guarantees for the `DecoupledLookback()` algorithm - which
-produces incorrect results about 0.38% of the time. Also, `block_size=1024` is used here by
-default to reduce the number of coupled lookbacks.
-
-The CPU implementation currently defers to the single-threaded Base.accumulate!; we are waiting on a
-multithreaded implementation in OhMyThreads.jl ([issue](https://github.com/JuliaFolds2/OhMyThreads.jl/issues/129)).
+produces incorrect results about 0.38% of the time (the beauty of parallel algorithms, ey). Also,
+`block_size=1024` is used here by default to reduce the number of coupled lookbacks.
 
 # Examples
 Example computing an inclusive prefix sum (the typical GPU "scan"):
@@ -67,6 +115,7 @@ AK.accumulate!(+, v, alg=AK.ScanPrefixes())
 function accumulate!(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
+    dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
     # Algorithm choice
@@ -79,7 +128,31 @@ function accumulate!(
 )
     _accumulate_impl!(
         op, v, backend,
-        init=init, inclusive=inclusive,
+        init=init, dims=dims, inclusive=inclusive,
+        alg=alg,
+        block_size=block_size, temp=temp, temp_flags=temp_flags,
+    )
+end
+
+
+function accumulate!(
+    op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(v);
+    init,
+    dims::Union{Nothing, Int}=nothing,
+    inclusive::Bool=true,
+
+    # Algorithm choice
+    alg::AccumulateAlgorithm=DecoupledLookback(),
+
+    # GPU settings
+    block_size::Int=256,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    temp_flags::Union{Nothing, AbstractArray}=nothing,
+)
+    copyto!(dst, src)
+    _accumulate_impl!(
+        op, dst, backend,
+        init=init, dims=dims, inclusive=inclusive,
         alg=alg,
         block_size=block_size, temp=temp, temp_flags=temp_flags,
     )
@@ -89,6 +162,7 @@ end
 function _accumulate_impl!(
     op, v::AbstractArray, backend::Backend;
     init,
+    dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
     alg::AccumulateAlgorithm=DecoupledLookback(),
@@ -99,30 +173,33 @@ function _accumulate_impl!(
     temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
     if backend isa GPU
-        accumulate_1d!(
-            op, v, backend, alg,
-            init=init, inclusive=inclusive,
-            block_size=block_size, temp=temp, temp_flags=temp_flags,
-        )
-        return v
-    else
-        # Simple single-threaded CPU implementation - FIXME: implement taccumulate in OhMyThreads.jl
-        if length(v) == 0
+        if isnothing(dims)
+            accumulate_1d!(
+                op, v, backend, alg,
+                init=init, inclusive=inclusive,
+                block_size=block_size, temp=temp, temp_flags=temp_flags,
+            )
             return v
-        end
-        if inclusive
-            running = v[begin]
-            for i in firstindex(v) + 1:lastindex(v)
-                running = op(running, v[i])
-                v[i] = running
-            end
         else
-            running = init
-            for i in eachindex(v)
-                v[i], running = running, op(running, v[i])
-            end
+            accumulate_nd!(
+                op, v, backend,
+                init=init, dims=dims, inclusive=inclusive,
+                block_size=block_size,
+            )
         end
-        return v
+    else
+        if isnothing(dims)
+            accumulate_1d!(
+                op, v,
+                init=init, inclusive=inclusive,
+            )
+            return v
+        else
+            accumulate_nd!(
+                op, v,
+                init=init, dims=dims, inclusive=inclusive,
+            )
+        end
     end
 end
 
@@ -131,6 +208,7 @@ end
     accumulate(
         op, v::AbstractArray, backend::Backend=get_backend(v);
         init,
+        dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
         block_size::Int=256,
@@ -143,15 +221,26 @@ Out-of-place version of [`accumulate!`](@ref).
 function accumulate(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
+    dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
     temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
-    vcopy = copy(v)
-    accumulate!(op, vcopy, backend; init=init, inclusive=inclusive,
-                block_size=block_size, temp=temp, temp_flags=temp_flags)
+    dst_type = promote_type(eltype(v), typeof(init))
+    vcopy = similar(v, dst_type)
+    copyto!(vcopy, v)
+    accumulate!(
+        op, vcopy, backend;
+        init=init,
+        dims=dims,
+        inclusive=inclusive,
+        
+        block_size=block_size,
+        temp=temp,
+        temp_flags=temp_flags,
+    )
     vcopy
 end
 

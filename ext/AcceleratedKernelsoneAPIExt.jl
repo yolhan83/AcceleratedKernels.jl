@@ -1,4 +1,4 @@
-module PlatformDependentoneAPIExt
+module AcceleratedKernelsoneAPIExt
 
 
 using oneAPI
@@ -61,4 +61,4 @@ function AK.all(
 end
 
 
-end   # module PlatformDependentoneAPI
+end   # module AcceleratedKernelsoneAPIExt
