@@ -211,6 +211,10 @@ end
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
+        # Algorithm choice
+        alg::AccumulateAlgorithm=DecoupledLookback(),
+
+        # GPU settings
         block_size::Int=256,
         temp::Union{Nothing, AbstractArray}=nothing,
         temp_flags::Union{Nothing, AbstractArray}=nothing,
@@ -224,6 +228,10 @@ function accumulate(
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
+    # Algorithm choice
+    alg::AccumulateAlgorithm=DecoupledLookback(),
+
+    # GPU settings
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
     temp_flags::Union{Nothing, AbstractArray}=nothing,
@@ -236,6 +244,8 @@ function accumulate(
         init=init,
         dims=dims,
         inclusive=inclusive,
+
+        alg=alg,
         
         block_size=block_size,
         temp=temp,

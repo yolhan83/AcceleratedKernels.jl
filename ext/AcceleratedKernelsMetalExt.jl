@@ -55,4 +55,60 @@ function AK.accumulate!(
 end
 
 
+function AK.cumsum(
+    src::AbstractArray, backend::MetalBackend;
+    init=zero(eltype(src)),
+    dims::Union{Nothing, Int}=nothing,
+
+    # Algorithm choice
+    alg::AK.AccumulateAlgorithm=AK.ScanPrefixes(),
+
+    # GPU settings
+    block_size::Int=256,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    temp_flags::Union{Nothing, AbstractArray}=nothing,
+)
+    AK.accumulate(
+        +, src, backend;
+        init=init,
+        dims=dims,
+        inclusive=true,
+
+        alg=alg,
+
+        block_size=block_size,
+        temp=temp,
+        temp_flags=temp_flags,
+    )
+end
+
+
+function AK.cumprod(
+    src::AbstractArray, backend::MetalBackend;
+    init=one(eltype(src)),
+    dims::Union{Nothing, Int}=nothing,
+
+    # Algorithm choice
+    alg::AK.AccumulateAlgorithm=AK.ScanPrefixes(),
+
+    # GPU settings
+    block_size::Int=256,
+    temp::Union{Nothing, AbstractArray}=nothing,
+    temp_flags::Union{Nothing, AbstractArray}=nothing,
+)
+    AK.accumulate(
+        *, src, backend;
+        init=init,
+        dims=dims,
+        inclusive=true,
+
+        alg=alg,
+
+        block_size=block_size,
+        temp=temp,
+        temp_flags=temp_flags,
+    )
+end
+
+
 end   # module AcceleratedKernelsMetalExt

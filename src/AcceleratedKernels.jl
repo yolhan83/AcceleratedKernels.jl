@@ -35,6 +35,7 @@ include("reduce/reduce.jl")
 include("accumulate/accumulate.jl")
 include("searchsorted.jl")
 include("truth.jl")
+include("arithmetics.jl")
 
 
 end     # module AcceleratedKernels
