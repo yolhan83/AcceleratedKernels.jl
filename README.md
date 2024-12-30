@@ -319,7 +319,6 @@ Help is very welcome for any of the below:
 - Add performant multithreaded Julia implementations to all algorithms; e.g. `foreachindex` has one, `any` does not.
   - EDIT: as of v0.2.0, only `sort` needs a multithreaded implementation.
 - Any way to expose the warp-size from the backends? Would be useful in reductions.
-- Define default `init` values for often-used reductions? Or just expose higher-level functions like `sum`, `minimum`, etc.?
 - Add a performance regressions runner.
 - **Other ideas?** Post an issue, or open a discussion on the Julia Discourse.
 
