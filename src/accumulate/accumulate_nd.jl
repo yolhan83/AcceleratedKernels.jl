@@ -218,10 +218,11 @@ end
             end
         end
 
+        _running_prefix = running_prefix[0x1]
         @synchronize()
 
         if block_offset + ai < length_dims
-            total = op(running_prefix[0x1], temp[ai + bank_offset_a + 0x1])
+            total = op(_running_prefix, temp[ai + bank_offset_a + 0x1])
             v[
                 input_base_idx +
                 (block_offset + ai) * vstrides[dims] +
@@ -229,7 +230,7 @@ end
             ] = total
         end
         if block_offset + bi < length_dims
-            total = op(running_prefix[0x1], temp[bi + bank_offset_b + 0x1])
+            total = op(_running_prefix, temp[bi + bank_offset_b + 0x1])
             v[
                 input_base_idx +
                 (block_offset + bi) * vstrides[dims] +

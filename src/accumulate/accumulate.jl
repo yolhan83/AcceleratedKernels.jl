@@ -174,14 +174,13 @@ function _accumulate_impl!(
 )
     if backend isa GPU
         if isnothing(dims)
-            accumulate_1d!(
+            return accumulate_1d!(
                 op, v, backend, alg,
                 init=init, inclusive=inclusive,
                 block_size=block_size, temp=temp, temp_flags=temp_flags,
             )
-            return v
         else
-            accumulate_nd!(
+            return accumulate_nd!(
                 op, v, backend,
                 init=init, dims=dims, inclusive=inclusive,
                 block_size=block_size,
@@ -189,13 +188,12 @@ function _accumulate_impl!(
         end
     else
         if isnothing(dims)
-            accumulate_1d!(
+            return accumulate_1d!(
                 op, v,
                 init=init, inclusive=inclusive,
             )
-            return v
         else
-            accumulate_nd!(
+            return accumulate_nd!(
                 op, v,
                 init=init, dims=dims, inclusive=inclusive,
             )
