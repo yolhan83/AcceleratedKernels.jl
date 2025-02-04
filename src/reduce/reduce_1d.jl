@@ -1,6 +1,6 @@
 @kernel inbounds=true cpu=false function _reduce_block!(@Const(src), dst, op, init)
 
-    N = @groupsize()[1]
+    @uniform N = @groupsize()[1]
     sdata = @localmem eltype(dst) (N,)
 
     len = length(src)

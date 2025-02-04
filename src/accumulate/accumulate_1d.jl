@@ -19,7 +19,7 @@ end
     # NOTE: shmem_size MUST be greater than 2 * block_size
     # NOTE: block_size MUST be a power of 2
     len = length(v)
-    block_size = @groupsize()[1]
+    @uniform block_size = @groupsize()[1]
     temp = @localmem eltype(v) (0x2 * block_size + conflict_free_offset(0x2 * block_size),)
 
     # NOTE: for many index calculations in this library, computation using zero-indexing leads to

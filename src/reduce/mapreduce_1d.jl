@@ -1,6 +1,6 @@
 @kernel inbounds=true cpu=false function _mapreduce_block!(@Const(src), dst, f, op, init)
 
-    N = @groupsize()[1]
+    @uniform N = @groupsize()[1]
     sdata = @localmem eltype(dst) (N,)
 
     len = length(src)

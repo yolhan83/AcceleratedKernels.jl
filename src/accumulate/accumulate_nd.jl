@@ -73,7 +73,7 @@ end
     length_dims = vsizes[dims]
     length_outer = length(v) ÷ length_dims
 
-    block_size = @groupsize()[1]
+    @uniform block_size = @groupsize()[1]
 
     temp = @localmem eltype(v) (0x2 * block_size + conflict_free_offset(0x2 * block_size),)
     running_prefix = @localmem eltype(v) (1,)

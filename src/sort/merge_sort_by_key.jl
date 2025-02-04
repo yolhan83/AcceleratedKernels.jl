@@ -1,6 +1,6 @@
 @kernel inbounds=true function _merge_sort_by_key_block!(keys, values, comp)
 
-    N = @groupsize()[1]
+    @uniform N = @groupsize()[1]
     s_keys = @localmem eltype(keys) (N * 0x2,)
     s_values = @localmem eltype(values) (N * 0x2,)
 
