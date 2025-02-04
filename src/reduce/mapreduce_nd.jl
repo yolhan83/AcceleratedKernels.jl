@@ -78,7 +78,7 @@ end
 
     ndims = length(src_sizes)
 
-    N = @groupsize()[1]
+    @uniform N = @groupsize()[1]
     sdata = @localmem eltype(dst) (N,)
 
     # NOTE: for many index calculations in this library, computation using zero-indexing leads to

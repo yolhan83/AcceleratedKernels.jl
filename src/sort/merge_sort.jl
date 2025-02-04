@@ -1,6 +1,6 @@
 @kernel inbounds=true function _merge_sort_block!(vec, comp)
 
-    N = @groupsize()[1]
+    @uniform N = @groupsize()[1]
     s_buf = @localmem eltype(vec) (N * 0x2,)
 
     T = eltype(vec)
