@@ -10,6 +10,7 @@ import AcceleratedKernels as AK
 function AK.accumulate!(
     op, v::AbstractArray, backend::MetalBackend;
     init,
+    neutral=AK.neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -23,7 +24,7 @@ function AK.accumulate!(
 )
     AK._accumulate_impl!(
         op, v, backend,
-        init=init, dims=dims, inclusive=inclusive,
+        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
         alg=alg,
         block_size=block_size, temp=temp, temp_flags=temp_flags,
     )
@@ -34,6 +35,7 @@ end
 function AK.accumulate!(
     op, dst::AbstractArray, src::AbstractArray, backend::MetalBackend;
     init,
+    neutral=AK.neutral_element(op, eltype(dst)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -48,7 +50,7 @@ function AK.accumulate!(
     copyto!(dst, src)
     AK._accumulate_impl!(
         op, dst, backend,
-        init=init, dims=dims, inclusive=inclusive,
+        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
         alg=alg,
         block_size=block_size, temp=temp, temp_flags=temp_flags,
     )
@@ -58,6 +60,7 @@ end
 function AK.cumsum(
     src::AbstractArray, backend::MetalBackend;
     init=zero(eltype(src)),
+    neutral=zero(eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # Algorithm choice
@@ -71,6 +74,7 @@ function AK.cumsum(
     AK.accumulate(
         +, src, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         inclusive=true,
 
@@ -86,6 +90,7 @@ end
 function AK.cumprod(
     src::AbstractArray, backend::MetalBackend;
     init=one(eltype(src)),
+    neutral=one(eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # Algorithm choice
@@ -99,6 +104,7 @@ function AK.cumprod(
     AK.accumulate(
         *, src, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         inclusive=true,
 

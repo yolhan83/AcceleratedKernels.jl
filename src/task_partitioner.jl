@@ -1,14 +1,21 @@
 """
-    $(TYPEDEF)
-
 Partitioning `num_elems` elements / jobs over maximum `max_tasks` tasks with minimum `min_elems`
 elements per task.
 
 # Methods
     TaskPartitioner(num_elems, max_tasks=Threads.nthreads(), min_elems=1)
+    Base.getindex(tp::TaskPartitioner, itask::Integer)
+    Base.firstindex(tp::TaskPartitioner)
+    Base.lastindex(tp::TaskPartitioner)
+    Base.length(tp::TaskPartitioner)
 
 # Fields
-    $(TYPEDFIELDS)
+
+- `num_elems::Int` : (user-defined) number of elements / jobs to partition.
+- `max_tasks::Int` : (user-defined) maximum number of tasks to use.
+- `min_elems::Int` : (user-defined) minimum number of elements per task.
+- `num_tasks::Int` : (computed) number of tasks actually needed.
+- `task_istarts::Vector{Int}` : (computed) element starting index for each task.
 
 # Examples
 

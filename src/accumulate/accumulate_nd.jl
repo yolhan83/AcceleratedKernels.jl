@@ -40,8 +40,8 @@
         # are so many outer elements (each processed by an independent thread) that we afford to
         # loop sequentially over the accumulated dimension (e.g. reduce(+, rand(3, 1000), dims=1))
         if inclusive
-            running = v[input_base_idx + 0x1]
-            for i in 0x1:length_dims - 0x1
+            running = init
+            for i in 0x0:length_dims - 0x1
                 v_idx = input_base_idx + i * vstrides[dims]
                 running = op(running, v[v_idx + 0x1])
                 v[v_idx + 0x1] = running
@@ -57,7 +57,7 @@
 end
 
 
-@kernel inbounds=true cpu=false function _accumulate_nd_by_block!(v, op, init, dims, inclusive)
+@kernel inbounds=true cpu=false function _accumulate_nd_by_block!(v, op, init, neutral, dims, inclusive)
 
     # NOTE: shmem_size MUST be greater than 2 * block_size
     # NOTE: block_size MUST be a power of 2
@@ -104,10 +104,10 @@ end
     # block_size and keep track of previous chunks' running prefix
     ichunk = typeof(iblock)(0)
     num_chunks = (length_dims + block_size - 0x1) ÷ block_size
-    total = init
+    total = neutral
 
     if ithread == 0x0
-        running_prefix[0x1] = init
+        running_prefix[0x1] = neutral
     end
     @synchronize()
 
@@ -128,7 +128,7 @@ end
                 0x1                                         # - to 1-indexing
             ]
         else
-            temp[ai + bank_offset_a + 0x1] = init
+            temp[ai + bank_offset_a + 0x1] = neutral
         end
 
         if block_offset + bi < length_dims
@@ -138,7 +138,7 @@ end
                 0x1
             ]
         else
-            temp[bi + bank_offset_b + 0x1] = init
+            temp[bi + bank_offset_b + 0x1] = neutral
         end
 
         # Build block reduction down
@@ -164,7 +164,7 @@ end
         # Flush last element
         if ithread == 0x0
             offset0 = conflict_free_offset(next_pow2 - 0x1)
-            temp[next_pow2 - 0x1 + offset0 + 0x1] = init
+            temp[next_pow2 - 0x1 + offset0 + 0x1] = ichunk == 0x0 ? init : neutral
         end
 
         # Build block accumulation up
@@ -252,6 +252,7 @@ end
 function accumulate_nd!(
     op, v::AbstractArray, backend::GPU;
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(v)),
     dims::Int,
     inclusive::Bool=true,
 
@@ -302,7 +303,7 @@ function accumulate_nd!(
         blocks = length_outer
         kernel! = _accumulate_nd_by_block!(backend, block_size)
         kernel!(
-            v, op, init, dims, inclusive,
+            v, op, init, neutral, dims, inclusive,
             ndrange=(block_size, blocks),
         )
     end

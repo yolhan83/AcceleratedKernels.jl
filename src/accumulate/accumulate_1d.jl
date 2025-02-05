@@ -12,7 +12,7 @@ const ACC_FLAG_P::UInt8 = 1             # Only current block's prefix available
 end
 
 
-@kernel cpu=false inbounds=true function _accumulate_block!(op, v, init,
+@kernel cpu=false inbounds=true function _accumulate_block!(op, v, init, neutral,
                                                             inclusive,
                                                             flags, prefixes)  # one per block
 
@@ -44,13 +44,13 @@ end
     if block_offset + ai < len
         temp[ai + bank_offset_a + 0x1] = v[block_offset + ai + 0x1]
     else
-        temp[ai + bank_offset_a + 0x1] = init
+        temp[ai + bank_offset_a + 0x1] = neutral
     end
 
     if block_offset + bi < len
         temp[bi + bank_offset_b + 0x1] = v[block_offset + bi + 0x1]
     else
-        temp[bi + bank_offset_b + 0x1] = init
+        temp[bi + bank_offset_b + 0x1] = neutral
     end
 
     # Build block reduction down
@@ -76,7 +76,7 @@ end
     # Flush last element
     if ithread == 0x0
         offset0 = conflict_free_offset(next_pow2 - 0x1)
-        temp[next_pow2 - 0x1 + offset0 + 0x1] = init
+        temp[next_pow2 - 0x1 + offset0 + 0x1] = iblock == 0x0 ? init : neutral
     end
 
     # Build block accumulation up
@@ -147,7 +147,7 @@ end
 end
 
 
-@kernel cpu=false inbounds=true function _accumulate_previous!(op, v, init, flags, @Const(prefixes))
+@kernel cpu=false inbounds=true function _accumulate_previous!(op, v, flags, @Const(prefixes))
 
     len = length(v)
     block_size = @groupsize()[1]
@@ -163,8 +163,8 @@ end
     block_offset = iblock * block_size * 0x2                # Processing two elements per thread
 
     # Each block looks back to find running prefix sum
-    running_prefix = init
-    inspected_block = signed(typeof(iblock))(iblock) - 0x1
+    running_prefix = prefixes[iblock - 0x1 + 0x1]
+    inspected_block = signed(typeof(iblock))(iblock) - 0x2
     while inspected_block >= 0x0
 
         # Opportunistic: a previous block finished everything
@@ -247,6 +247,7 @@ end
 function accumulate_1d!(
     op, v::AbstractArray, backend::GPU, ::DecoupledLookback;
     init,
+    neutral,
     inclusive::Bool=true,
 
     block_size::Int=256,
@@ -283,12 +284,12 @@ function accumulate_1d!(
     end
 
     kernel1! = _accumulate_block!(backend, block_size)
-    kernel1!(op, v, init, inclusive, flags, prefixes,
+    kernel1!(op, v, init, neutral, inclusive, flags, prefixes,
              ndrange=num_blocks * block_size)
 
     if num_blocks > 1
         kernel2! = _accumulate_previous!(backend, block_size)
-        kernel2!(op, v, init, flags, prefixes,
+        kernel2!(op, v, flags, prefixes,
                  ndrange=(num_blocks - 1) * block_size)
     end
 
@@ -300,6 +301,7 @@ end
 function accumulate_1d!(
     op, v::AbstractArray, backend::GPU, ::ScanPrefixes;
     init,
+    neutral,
     inclusive::Bool=true,
 
     block_size::Int=256,
@@ -328,14 +330,14 @@ function accumulate_1d!(
     end
 
     kernel1! = _accumulate_block!(backend, block_size)
-    kernel1!(op, v, init, inclusive, nothing, prefixes,
+    kernel1!(op, v, init, neutral, inclusive, nothing, prefixes,
              ndrange=num_blocks * block_size)
 
     if num_blocks > 1
 
-        # Accumulate prefixes of all blocks
+        # Accumulate prefixes of all blocks; use neutral as init here to not reinclude init
         num_blocks_prefixes = (length(prefixes) + elems_per_block - 1) ÷ elems_per_block
-        kernel1!(op, prefixes, init, true, nothing, nothing,
+        kernel1!(op, prefixes, neutral, neutral, true, nothing, nothing,
                  ndrange=num_blocks_prefixes * block_size)
 
         # Prefixes are pre-accumulated (completely accumulated if num_blocks_prefixes == 1, or

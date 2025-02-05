@@ -11,6 +11,10 @@
 Parallel algorithm building blocks for the Julia ecosystem, targeting multithreaded CPUs, and GPUs via Intel oneAPI, AMD ROCm, Apple Metal and Nvidia CUDA (and any future backends added to the [JuliaGPU](https://juliagpu.org/) organisation) from a unified KernelAbstractions.jl codebase.
 
 
+### A Uniform API, Everywhere
+Offering standard library functions (e.g., `sort`, `mapreduce`, `accumulate`), higher-order functions (e.g., `sum`, `cumprod`, `any`), and cross-architecture custom loops (`foreachindex`, `foraxes`), AcceleratedKernels.jl lets you write high-performance code once and run it on any supported architecture — no separate or special-cased kernels needed. It’s the classic “write once, run everywhere” principle, but supercharged for modern parallel CPU and GPU computing.
+
+
 <table>
 
 <tr>
@@ -184,7 +188,7 @@ Julia v1.11
 
 
 ## 1. What's Different?
-As far as I am aware, this is the first cross-architecture parallel standard library *from a unified codebase* - that is, the code is written as [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) backend-agnostic kernels, which are then **transpiled** to a GPU backend; that means we benefit from all the optimisations available on the native platform and official compiler stacks. For example, unlike open standards like OpenCL that require GPU vendors to implement that API for their hardware, we target the existing official compilers. And while performance-portability libraries like [Kokkos](https://github.com/kokkos/kokkos) and [RAJA](https://github.com/LLNL/RAJA) are powerful for large C++ codebases, they require US National Lab-level development and maintenance efforts to effectively forward calls from a single API to other OpenMP, CUDA Thrust, ROCm rocThrust, oneAPI DPC++ libraries developed separately. In comparison, this library was developed effectively in a week by a single person because developing packages in Julia is just a joy.
+As far as I am aware, this is the first cross-architecture parallel standard library *from a unified codebase* - that is, the code is written as [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) backend-agnostic kernels, which are then **transpiled** to a GPU backend; that means we benefit from all the optimisations available on the native platform and official compiler stacks. For example, unlike open standards like OpenCL that require GPU vendors to implement that API for their hardware, we target the existing official compilers. And while performance-portability libraries like [Kokkos](https://github.com/kokkos/kokkos) and [RAJA](https://github.com/LLNL/RAJA) are powerful for large C++ codebases, they require US National Lab-level development and maintenance efforts to effectively forward calls from a single API to other OpenMP, CUDA Thrust, ROCm rocThrust, oneAPI DPC++ libraries developed separately.
 
 Again, this is only possible because of the unique Julia compilation model, the [JuliaGPU](https://juliagpu.org/) organisation work for reusable GPU backend infrastructure, and especially the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) backend-agnostic kernel language. Thank you.
 
@@ -192,7 +196,7 @@ Again, this is only possible because of the unique Julia compilation model, the 
 ## 2. Status
 The AcceleratedKernels.jl sorters were adopted as the official [AMDGPU algorithms](https://github.com/JuliaGPU/AMDGPU.jl/pull/688)! The API is starting to stabilise; it follows the Julia standard library fairly closely - and additionally exposing all temporary arrays for memory reuse. For any new ideas / requests, please join the conversation on [Julia Discourse](https://discourse.julialang.org/t/ann-acceleratedkernels-jl-cross-architecture-parallel-algorithms-for-julias-gpu-backends/119698/16) or post [an issue](https://github.com/juliagpu/AcceleratedKernels.jl/issues).
 
-We have an extensive randomised test suite that we run on the CPU (single- and multi-threaded) backend on Windows, Ubuntu and MacOS for Julia LTS, Stable, and Pre-Release, plus the CUDA, AMDGPU, oneAPI and Metal backends on the [JuliaGPU buildkite](https://github.com/JuliaGPU/buildkite).
+We have an extensive randomised test suite that we run on the CPU (single- and multi-threaded) backend on Windows, Ubuntu and MacOS for Julia LTS, Stable, and Pre-Release, plus the CUDA, AMDGPU, oneAPI and Metal backends on the [JuliaGPU buildkite](https://github.com/JuliaGPU/buildkite) - the exact same tests are run on all architectures to ensure uniform interfaces.
 
 AcceleratedKernels.jl is also a fundamental building block of applications developed at [EvoPhase](https://evophase.co.uk/), so it will see continuous heavy use with industry backing. Long-term stability, performance improvements and support are priorities for us.
 

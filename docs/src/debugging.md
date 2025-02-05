@@ -87,20 +87,7 @@ The error stack is a bit more difficult here:
 
 You see a few `dynamic function invocation`, an `unsupported call to gpu_malloc`, and a bit further down a `box`. The more operations you do on the type-unstable object, the more `dynamic function invocation` errors you'll see. These would also be the steps Base Julia would take to allow dynamically-changing objects: they'd be put in a `Box` behind pointers, and allocated on the heap. In a way, it is better that we cannot do that on a GPU, as it hurts performance massively.
 
-There are two ways to solve this - if you really want to use global variables in a script, put them behind a `const`:
-
-```julia
-const v = MtlArray(1:1000)
-
-AK.foreachindex(v) do i
-    v[i] *= 2
-end
-
-# This would give you an error now
-# v = "potato"
-```
-
-Or better, use functions:
+Solving this is easy - stick the `foreachindex` in a function where the variable types are known at compile-time:
 
 ```julia
 function mymul!(v, x)
@@ -114,6 +101,8 @@ mymul!(v, 2)
 ```
 
 Note that Julia's lambda capture is very powerful - inside `AK.foreachindex` you can references other objects from within the function (like `x`), without explicitly passing them to the GPU.
+
+Note that while technically we could write `const v` in the global scope, when writing a closure (in a `do ... end` block) that references outer objects, the closure may try to capture other variables defined in the current Julia session; as such, it is an unreliable approach for GPU kernels ([example issue](https://github.com/JuliaGPU/AcceleratedKernels.jl/issues/13)) that we do not recommend. Use functions.
 
 
 ### Apple Metal Only: Float64 is not Supported

@@ -9,8 +9,8 @@ function accumulate_1d!(
     end
 
     if inclusive
-        running = v[begin]
-        for i in firstindex(v) + 1:lastindex(v)
+        running = init
+        for i in firstindex(v):lastindex(v)
             running = op(running, v[i])
             v[i] = running
         end
@@ -70,8 +70,8 @@ function accumulate_nd!(
         # are so many outer elements (each processed by an independent thread) that we afford to
         # loop sequentially over the accumulated dimension (e.g. reduce(+, rand(3, 1000), dims=1))
         if inclusive
-            running = v[input_base_idx + 1]
-            for i in 1:length_dims - 1
+            running = init
+            for i in 0:length_dims - 1
                 v_idx = input_base_idx + i * vstrides[dims]
                 running = op(running, v[v_idx + 1])
                 v[v_idx + 1] = running
