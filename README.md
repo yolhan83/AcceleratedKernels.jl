@@ -12,7 +12,7 @@ Parallel algorithm building blocks for the Julia ecosystem, targeting multithrea
 
 
 ### A Uniform API, Everywhere
-Offering standard library functions (e.g., `sort`, `mapreduce`, `accumulate`), higher-order functions (e.g., `sum`, `cumprod`, `any`), and cross-architecture custom loops (`foreachindex`, `foraxes`), AcceleratedKernels.jl lets you write high-performance code once and run it on any supported architecture — no separate or special-cased kernels needed. It’s the classic “write once, run everywhere” principle, but supercharged for modern parallel CPU and GPU computing.
+Offering standard library algorithms (e.g., `sort`, `mapreduce`, `accumulate`), higher-order functions (e.g., `sum`, `cumprod`, `any`), and cross-architecture custom loops (`foreachindex`, `foraxes`), AcceleratedKernels.jl lets you write high-performance code once and run it on all supported architectures — no separate or special-cased kernels needed. It’s the classic “write once, run everywhere” principle, but supercharged for modern parallel CPU and GPU computing.
 
 
 <table>
@@ -320,8 +320,7 @@ Help is very welcome for any of the below:
       switch_below=(1, 10, 100, 1000, 10000)
   end
   ```
-- Add performant multithreaded Julia implementations to all algorithms; e.g. `foreachindex` has one, `any` does not.
-  - EDIT: as of v0.2.0, only `sort` needs a multithreaded implementation.
+- We need multithreaded implementations of `sort`, N-dimensional `mapreduce` (in `OhMyThreads.tmapreduce`) and `accumulate` (again, probably in `OhMyThreads`).
 - Any way to expose the warp-size from the backends? Would be useful in reductions.
 - Add a performance regressions runner.
 - **Other ideas?** Post an issue, or open a discussion on the Julia Discourse.
