@@ -11,18 +11,18 @@ module AcceleratedKernels
 
 
 # Internal dependencies
-using ArgCheck
-using GPUArraysCore: AbstractGPUVector, AbstractGPUArray, @allowscalar
+using ArgCheck: @argcheck
+using GPUArrays: GPUArrays, AbstractGPUVector, AbstractGPUArray, @allowscalar
 using KernelAbstractions
 using Polyester: @batch
 import OhMyThreads as OMT
-using Unrolled
-using DocStringExtensions
+using Unrolled: @unroll, unrolled_map, FixedRange
 
 
 # Exposed functions from upstream packages
 const synchronize = KernelAbstractions.synchronize
 const get_backend = KernelAbstractions.get_backend
+const neutral_element = GPUArrays.neutral_element
 
 
 # Include code from other files
@@ -34,7 +34,7 @@ include("sort/sort.jl")
 include("reduce/reduce.jl")
 include("accumulate/accumulate.jl")
 include("searchsorted.jl")
-include("truth.jl")
+include("predicates.jl")
 include("arithmetics.jl")
 
 

@@ -88,10 +88,12 @@ depending on the function, but in general the latter is more composable.
 # Examples
 Normally you would write a for loop like this:
 ```julia
-x = Array(1:100)
-y = similar(x)
-for i in eachindex(x)
-    @inbounds y[i] = 2 * x[i] + 1
+function f()
+    x = Array(1:100)
+    y = similar(x)
+    for i in eachindex(x)
+        @inbounds y[i] = 2 * x[i] + 1
+    end
 end
 ```
 
@@ -99,10 +101,13 @@ Using this function you can have the same for loop body over a GPU array:
 ```julia
 using CUDA
 import AcceleratedKernels as AK
-const x = CuArray(1:100)
-const y = similar(x)
-AK.foreachindex(x) do i
-    @inbounds y[i] = 2 * x[i] + 1
+
+function f()
+    x = CuArray(1:100)
+    y = similar(x)
+    AK.foreachindex(x) do i
+        @inbounds y[i] = 2 * x[i] + 1
+    end
 end
 ```
 
@@ -115,8 +120,7 @@ y = 2 .* x .+ 1
 ```
 
 **Important note**: to use this function on a GPU, the objects referenced inside the loop body must
-have known types - i.e. be inside a function, or `const` global objects; but you shouldn't use
-global objects anyways. For example:
+have known types - i.e. be inside a function. For example:
 ```julia
 using oneAPI
 import AcceleratedKernels as AK
@@ -193,11 +197,13 @@ depending on the function, but in general the latter is more composable.
 # Examples
 Normally you would write a for loop like this:
 ```julia
-x = Array(reshape(1:30, 3, 10))
-y = similar(x)
-for i in axes(x, 2)
-    for j in axes(x, 1)
-        @inbounds y[j, i] = 2 * x[j, i] + 1
+function f()
+    x = Array(reshape(1:30, 3, 10))
+    y = similar(x)
+    for i in axes(x, 2)
+        for j in axes(x, 1)
+            @inbounds y[j, i] = 2 * x[j, i] + 1
+        end
     end
 end
 ```
@@ -206,18 +212,20 @@ Using this function you can have the same for loop body over a GPU array:
 ```julia
 using CUDA
 import AcceleratedKernels as AK
-const x = CuArray(reshape(1:3000, 3, 1000))
-const y = similar(x)
-AK.foraxes(x, 2) do i
-    for j in axes(x, 1)
-        @inbounds y[j, i] = 2 * x[j, i] + 1
+
+function f()
+    x = CuArray(reshape(1:3000, 3, 1000))
+    y = similar(x)
+    AK.foraxes(x, 2) do i
+        for j in axes(x, 1)
+            @inbounds y[j, i] = 2 * x[j, i] + 1
+        end
     end
 end
 ```
 
 **Important note**: to use this function on a GPU, the objects referenced inside the loop body must
-have known types - i.e. be inside a function, or `const` global objects; but you shouldn't use
-global objects anyways. For example:
+have known types - i.e. be inside a function. For example:
 ```julia
 using oneAPI
 import AcceleratedKernels as AK

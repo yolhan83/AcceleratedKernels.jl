@@ -64,7 +64,7 @@
 end
 
 
-@kernel inbounds=true cpu=false function _mapreduce_nd_by_block!(@Const(src), dst, f, op, init, dims)
+@kernel inbounds=true cpu=false function _mapreduce_nd_by_block!(@Const(src), dst, f, op, init, neutral, dims)
 
     # One block per output element, when there are more elements in the reduced dim than in outer
     # e.g. reduce(+, rand(3, 1000), dims=2) => only 3 elements in outer dimensions
@@ -119,7 +119,7 @@ end
 
         # We have a block of threads to process the whole reduced dimension. First do pre-reduction
         # in strides of N
-        partial = init
+        partial = neutral
         i = ithread
         while i < reduce_size
             src_idx = input_base_idx + i * src_strides[dims]
@@ -168,7 +168,7 @@ end
             @synchronize()
         end
         if ithread == 0x0
-            dst[iblock + 0x1] = sdata[0x1]
+            dst[iblock + 0x1] = op(init, sdata[0x1])
         end
     end
 end
@@ -177,6 +177,7 @@ end
 function mapreduce_nd(
     f, op, src::AbstractArray, backend::GPU;
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(src)),
     dims::Int,
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
@@ -190,7 +191,7 @@ function mapreduce_nd(
         throw(ArgumentError("region dimension(s) must be ≥ 1, got $dims"))
     end
 
-    # If dims > number of dimensions, just map each element through f, e.g.:
+    # If dims > number of dimensions, just map each element through f and add init, e.g.:
     #   julia> x = rand(Float64, 3, 5);
     #   julia> mapreduce(x -> -x, +, x, dims=3, init=Float32(0))
     #   3×5 Matrix{Float32}     # Negative numbers
@@ -203,7 +204,7 @@ function mapreduce_nd(
             @argcheck eltype(temp) == typeof(init)
             dst = temp
         end
-        map!(f, dst, src, block_size=block_size)
+        _mapreduce_nd_apply_init!(f, op, dst, src, backend, init, block_size)
         return dst
     end
 
@@ -233,7 +234,7 @@ function mapreduce_nd(
 
     # If sizes[dims] == 0, return array filled with init; same shape except sizes[dims] = 1:
     #   julia> x = rand(3, 0, 5);
-    #   julia> reduce(+, x, dims=2)
+    #   julia> mapreduce(+, x, dims=2)
     #   3×1×5 Array{Float64, 3}:
     #   [:, :, 1] =
     #    0.0
@@ -262,7 +263,7 @@ function mapreduce_nd(
             @argcheck eltype(temp) == typeof(init)
             dst = temp
         end
-        map!(f, dst, src, block_size=block_size)
+        _mapreduce_nd_apply_init!(f, op, dst, src, backend, init, block_size)
         return dst
     end
 
@@ -296,10 +297,35 @@ function mapreduce_nd(
         blocks = dst_size
         kernel! = _mapreduce_nd_by_block!(backend, block_size)
         kernel!(
-            src, dst, f, op, init, dims,
+            src, dst, f, op, init, neutral, dims,
             ndrange=(block_size * blocks,),
         )
     end
 
     return dst
+end
+
+
+function _mapreduce_nd_apply_init!(f, op, dst, src, backend, init, block_size)
+    foreachindex(
+        dst, backend,
+        block_size=block_size,    
+    ) do i
+        dst[i] = op(init, f(src[i]))
+    end
+end
+
+
+function unrolled_map_index(f, tuple_vector::Tuple)
+    unrolled_map(FixedRange{1, length(tuple_vector)}()) do i
+        @inline f(i)
+    end
+end
+
+
+@inline @unroll function unrolled_foreach_index(f, tuple_vector::Tuple)
+    @unroll for i in 1:length(tuple_vector)
+        @inline f(tuple_vector, i)
+    end
+    nothing
 end

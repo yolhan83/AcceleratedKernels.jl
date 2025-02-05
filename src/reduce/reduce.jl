@@ -1,6 +1,3 @@
-include("utils.jl")
-include("reduce_1d.jl")
-include("reduce_nd.jl")
 include("mapreduce_1d.jl")
 include("mapreduce_nd.jl")
 
@@ -9,6 +6,7 @@ include("mapreduce_nd.jl")
     reduce(
         op, src::AbstractArray, backend::Backend=get_backend(src);
         init,
+        neutral=GPUArrays.neutral_element(op, eltype(src)),
         dims::Union{Nothing, Int}=nothing,
 
         # CPU settings
@@ -24,7 +22,7 @@ include("mapreduce_nd.jl")
 
 Reduce `src` along dimensions `dims` using the binary operator `op`. If `dims` is `nothing`, reduce
 `src` to a scalar. If `dims` is an integer, reduce `src` along that dimension. The `init` value is
-used as the initial value for the reduction.
+used as the initial value for the reduction; `neutral` is the neutral element for the operator `op`.
 
 ## CPU settings
 The `scheduler` can be one of the [OhMyThreads.jl schedulers](https://juliafolds2.github.io/OhMyThreads.jl/dev/refs/api/#Schedulers),
@@ -74,6 +72,7 @@ mcolsum = AK.reduce(+, m; init=zero(eltype(m)), dims=2)
 function reduce(
     op, src::AbstractArray, backend::Backend=get_backend(src);
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -89,6 +88,7 @@ function reduce(
     _reduce_impl(
         op, src, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         scheduler=scheduler,
         max_tasks=max_tasks,
@@ -103,6 +103,7 @@ end
 function _reduce_impl(
     op, src::AbstractArray, backend;
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -115,42 +116,18 @@ function _reduce_impl(
     temp::Union{Nothing, AbstractArray}=nothing,
     switch_below::Int=0,
 )
-    if backend isa GPU
-        if isnothing(dims)
-            return reduce_1d(
-                op, src, backend;
-                init=init,
-                block_size=block_size,
-                temp=temp,
-                switch_below=switch_below,
-            )
-        else
-            return reduce_nd(
-                op, src, backend;
-                init=init,
-                dims=dims,
-                block_size=block_size,
-                temp=temp,
-            )
-        end
-    else
-        if isnothing(dims)
-            num_elems = length(src)
-            num_tasks = min(max_tasks, num_elems ÷ min_elems)
-            if num_tasks <= 1
-                return Base.reduce(op, src; init=init)
-            end
-            return OMT.treduce(
-                op, src, init=init,
-                scheduler=scheduler,
-                outputtype=typeof(init),
-                nchunks=num_tasks,
-            )
-        else
-            # FIXME: waiting on OhMyThreads.jl for n-dimensional reduction
-            return Base.reduce(op, src; init=init, dims=dims)
-        end
-    end
+    _mapreduce_impl(
+        identity, op, src, backend;
+        init=init,
+        neutral=neutral,
+        dims=dims,
+        scheduler=scheduler,
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        block_size=block_size,
+        temp=temp,
+        switch_below=switch_below,
+    )
 end
 
 
@@ -160,6 +137,7 @@ end
     mapreduce(
         f, op, src::AbstractArray, backend::Backend=get_backend(src);
         init,
+        neutral=GPUArrays.neutral_element(op, eltype(src)),
         dims::Union{Nothing, Int}=nothing,
 
         # CPU settings
@@ -176,6 +154,9 @@ end
 Reduce `src` along dimensions `dims` using the binary operator `op` after applying `f` elementwise.
 If `dims` is `nothing`, reduce `src` to a scalar. If `dims` is an integer, reduce `src` along that
 dimension. The `init` value is used as the initial value for the reduction (i.e. after mapping).
+
+The `neutral` value is the neutral element (zero) for the operator `op`, which is needed for an
+efficient GPU implementation that also allows a nonzero `init`.
 
 ## CPU settings
 The `scheduler` can be one of the [OhMyThreads.jl schedulers](https://juliafolds2.github.io/OhMyThreads.jl/dev/refs/api/#Schedulers),
@@ -222,6 +203,7 @@ mcolsumsq = AK.mapreduce(f, +, m; init=zero(eltype(m)), dims=2)
 function mapreduce(
     f, op, src::AbstractArray, backend::Backend=get_backend(src);
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -237,6 +219,7 @@ function mapreduce(
     _mapreduce_impl(
         f, op, src, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         scheduler=scheduler,
         max_tasks=max_tasks,
@@ -251,6 +234,7 @@ end
 function _mapreduce_impl(
     f, op, src::AbstractArray, backend::Backend;
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -268,6 +252,7 @@ function _mapreduce_impl(
             return mapreduce_1d(
                 f, op, src, backend;
                 init=init,
+                neutral=neutral,
                 block_size=block_size,
                 temp=temp,
                 switch_below=switch_below,
@@ -276,6 +261,7 @@ function _mapreduce_impl(
             return mapreduce_nd(
                 f, op, src, backend;
                 init=init,
+                neutral=neutral,
                 dims=dims,
                 block_size=block_size,
                 temp=temp,

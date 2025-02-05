@@ -639,6 +639,7 @@ end
             (x, y) -> x < y ? x : y,
             s;
             init=typemax(eltype(s)),
+            neutral=typemax(eltype(s)),
         )
     end
 
@@ -673,6 +674,7 @@ end
             (x, y) -> x + y,
             s;
             init=zero(eltype(s)),
+            neutral=zero(eltype(s)),
         )
     end
 
@@ -712,11 +714,32 @@ end
         @test s ≈ sum(vh)
     end
 
+    # Ensuring that the init value is respected
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(Int32(1):Int32(100), num_elems))
+        s = AK.reduce(+, v; init=Int32(10))
+        vh = Array(v)
+        @test s == sum(vh) + 10
+    end
+
+    # Testing with switch_below - i.e. finishing on the CPU
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(1:100, num_elems), Int32)
+        switch_below = rand(1:100)
+        init = rand(1:100)
+        s = AK.reduce(+, v; switch_below=switch_below, init=Int32(init))
+        vh = Array(v)
+        @test s == reduce(+, vh, init=init)
+    end
+
     # Testing different settings
     AK.reduce(
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 10_000)),
-        init=Int64(0),
+        init=Int32(0),
+        neutral=Int64(0),
         block_size=64,
         temp=array_from_host(zeros(Int32, 10_000)),
         switch_below=50,
@@ -727,7 +750,8 @@ end
     AK.reduce(
         (x, y) -> x + 1,
         rand(Int32, 10_000),
-        init=Int64(0),
+        init=Int32(0),
+        neutral=Int64(0),
         scheduler=:greedy,
         max_tasks=16,
         min_elems=1000,
@@ -745,10 +769,10 @@ end
                 for ksize in 0:3
                     sh = rand(Int32(1):Int32(100), isize, jsize, ksize)
                     s = array_from_host(sh)
-                    d = AK.reduce(+, s; init=Int32(0), dims=dims)
+                    d = AK.reduce(+, s; init=Int32(10), dims=dims)
                     dh = Array(d)
-                    @test dh == sum(sh, init=Int32(0), dims=dims)
-                    @test eltype(dh) == eltype(sum(sh, init=Int32(0), dims=dims))
+                    @test dh == sum(sh, init=Int32(10), dims=dims)
+                    @test eltype(dh) == eltype(sum(sh, init=Int32(10), dims=dims))
                 end
             end
         end
@@ -794,11 +818,27 @@ end
         end
     end
 
+    # Ensuring that the init value is respected
+    for _ in 1:100
+        for dims in 1:4
+            n1 = rand(1:100)
+            n2 = rand(1:100)
+            n3 = rand(1:100)
+            vh = rand(Int32(1):Int32(100), n1, n2, n3)
+            v = array_from_host(vh)
+            init = rand(1:100)
+            s = AK.reduce(+, v; init=Int32(init), dims=dims)
+            sh = Array(s)
+            @test sh == reduce(+, vh, dims=dims, init=init)
+        end
+    end
+
     # Testing different settings
     AK.reduce(
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 3, 4, 5)),
         init=Int32(0),
+        neutral=Int32(0),
         dims=2,
         block_size=64,
         temp=array_from_host(zeros(Int32, 3, 1, 5)),
@@ -811,6 +851,7 @@ end
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 3, 4, 5)),
         init=Int32(0),
+        neutral=Int32(0),
         dims=3,
         block_size=64,
         temp=array_from_host(zeros(Int32, 3, 4, 1)),
@@ -839,6 +880,7 @@ end
             (a, b) -> (a[1] < b[1] ? a[1] : b[1], a[2] < b[2] ? a[2] : b[2]),
             s;
             init=(typemax(Float32), typemax(Float32)),
+            neutral=(typemax(Float32), typemax(Float32)),
         )
     end
 
@@ -885,12 +927,33 @@ end
         @test mgpu[2] ≈ mcpu[2] ≈ mbase[2]
     end
 
+    # Ensuring that the init value is respected
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(Int32(1):Int32(100), num_elems))
+        s = AK.mapreduce(abs, +, v; init=Int32(10))
+        vh = Array(v)
+        @test s == sum(vh) + 10
+    end
+
+    # Testing with switch_below - i.e. finishing on the CPU
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(-100:-1, num_elems), Int32)
+        switch_below = rand(1:100)
+        init = rand(1:100)
+        s = AK.mapreduce(abs, +, v; switch_below=switch_below, init=Int32(init))
+        vh = Array(v)
+        @test s == mapreduce(abs, +, vh, init=init)
+    end
+
     # Testing different settings, enforcing change of type between f and op
     f(s, temp) = AK.mapreduce(
         p -> (p.x, p.y),
         (a, b) -> (a[1] < b[1] ? a[1] : b[1], a[2] < b[2] ? a[2] : b[2]),
         s,
         init=(typemax(Float32), typemax(Float32)),
+        neutral=(typemax(Float32), typemax(Float32)),
         block_size=64,
         temp=temp,
         switch_below=50,
@@ -912,12 +975,12 @@ end
         for isize in 0:3
             for jsize in 0:3
                 for ksize in 0:3
-                    sh = rand(Int32(1):Int32(100), isize, jsize, ksize)
+                    sh = rand(Int32(-100):Int32(100), isize, jsize, ksize)
                     s = array_from_host(sh)
-                    d = AK.mapreduce(-, +, s; init=Int32(0), dims=dims)
+                    d = AK.mapreduce(-, +, s; init=Int32(-10), dims=dims)
                     dh = Array(d)
-                    @test dh == mapreduce(-, +, sh, init=Int32(0), dims=dims)
-                    @test eltype(dh) == eltype(sum(sh, init=Int32(0), dims=dims))
+                    @test dh == mapreduce(-, +, sh, init=Int32(-10), dims=dims)
+                    @test eltype(dh) == eltype(mapreduce(-, +, sh, init=Int32(-10), dims=dims))
                 end
             end
         end
@@ -952,6 +1015,7 @@ end
             (a, b) -> (a[1] < b[1] ? a[1] : b[1], a[2] < b[2] ? a[2] : b[2]),
             s;
             init=(typemax(Float32), typemax(Float32)),
+            neutral=(typemax(Float32), typemax(Float32)),
             dims=dims,
         )
     end
@@ -988,12 +1052,28 @@ end
         end
     end
 
+    # Ensuring that the init value is respected
+    for _ in 1:100
+        for dims in 1:4
+            n1 = rand(1:100)
+            n2 = rand(1:100)
+            n3 = rand(1:100)
+            vh = rand(Int32(-100):Int32(100), n1, n2, n3)
+            v = array_from_host(vh)
+            init = rand(1:100)
+            s = AK.mapreduce(-, +, v; init=Int32(init), dims=dims)
+            sh = Array(s)
+            @test sh == mapreduce(-, +, vh, dims=dims, init=init)
+        end
+    end
+
     # Testing different settings
     AK.mapreduce(
         -,
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 3, 4, 5)),
         init=Int32(0),
+        neutral=Int32(0),
         dims=2,
         block_size=64,
         temp=array_from_host(zeros(Int32, 3, 1, 5)),
@@ -1007,6 +1087,7 @@ end
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 3, 4, 5)),
         init=Int32(0),
+        neutral=Int32(0),
         dims=3,
         block_size=64,
         temp=array_from_host(zeros(Int32, 3, 4, 1)),
@@ -1015,7 +1096,6 @@ end
         max_tasks=16,
         min_elems=1000,
     )
-
 end
 
 
@@ -1078,6 +1158,29 @@ end
         AK.accumulate!(+, v; init=0)
         @test all(Array(v) .≈ accumulate(+, vh))
     end
+
+    # Ensuring the init value is respected
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        x = array_from_host(rand(1:1000, num_elems), Int32)
+        y = copy(x)
+        init = rand(-1000:1000)
+        AK.accumulate!(+, y; init=Int32(init))
+        @test all(Array(y) .== accumulate(+, Array(x), init=init))
+    end
+
+    # Exclusive scan
+    x = array_from_host(ones(Int32, 10))
+    y = copy(x)
+    AK.accumulate!(+, y; init=0, inclusive=false)
+    @test all(Array(y) .== 0:9)
+
+    # Test init value is respected with exclusive scan too
+    x = array_from_host(ones(Int32, 10))
+    y = copy(x)
+    init = 10
+    AK.accumulate!(+, y; init=Int32(init), inclusive=false)
+    @test all(Array(y) .== 10:19)
 
     # Testing different settings
     AK.accumulate!(+, array_from_host(ones(Int32, 1000)), init=0, inclusive=false,
@@ -1155,6 +1258,21 @@ end
         end
     end
 
+    # Ensure the init value is respected
+    for _ in 1:100
+        for dims in 1:3
+            n1 = rand(1:100)
+            n2 = rand(1:100)
+            n3 = rand(1:100)
+            vh = rand(Float32, n1, n2, n3)
+            v = array_from_host(vh)
+            init = rand(-1000:1000)
+            s = AK.accumulate(+, v; init=Float32(init), dims=dims)
+            sh = Array(s)
+            @test all(sh .≈ accumulate(+, vh, init=Float32(init), dims=dims))
+        end
+    end
+
     # Exclusive scan
     vh = ones(Int32, 10, 10)
     v = array_from_host(vh)
@@ -1162,19 +1280,28 @@ end
     sh = Array(s)
     @test all([sh[i, :] == 0:9 for i in 1:10])
 
+    # Test init value is respected with exclusive scan too
+    vh = ones(Int32, 10, 10)
+    v = array_from_host(vh)
+    s = AK.accumulate(+, v; init=10, dims=2, inclusive=false)
+    sh = Array(s)
+    @test all([sh[i, :] == 10:19 for i in 1:10])
+
     # Testing different settings
     AK.accumulate(
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 3, 4, 5)),
         init=Int32(0),
+        neutral=Int32(0),
         dims=2,
         block_size=64,
         temp=array_from_host(zeros(Int32, 3, 1, 5)),
     )
-    AK.reduce(
+    AK.accumulate(
         (x, y) -> x + 1,
         array_from_host(rand(Int32, 3, 4, 5)),
         init=Int32(0),
+        neutral=Int32(0),
         dims=3,
         block_size=64,
         temp=array_from_host(zeros(Int32, 3, 4, 1)),
@@ -1302,10 +1429,21 @@ end
         @test AK.all(x->x<0, v) === false
     end
 
+    # Test the MapReduce algorithm which works on all platforms
+    for _ in 1:100
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(Float32, num_elems))
+        alg=AK.MapReduce(temp=similar(v, Bool), switch_below=100)
+        @test AK.any(x->x<0, v, alg=alg) === false
+        @test AK.any(x->x<1, v, alg=alg) === true
+        @test AK.all(x->x<1, v, alg=alg) === true
+        @test AK.all(x->x<0, v, alg=alg) === false
+    end
+
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
-    AK.any(x->x<5, v, cooperative=false, block_size=64)
-    AK.all(x->x<5, v, cooperative=false, block_size=64)
+    AK.any(x->x<5, v, max_tasks=2, min_elems=100, block_size=64)
+    AK.all(x->x<5, v, max_tasks=2, min_elems=100, block_size=64)
 end
 
 

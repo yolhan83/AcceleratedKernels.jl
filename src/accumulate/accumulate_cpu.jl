@@ -9,8 +9,8 @@ function accumulate_1d!(
     end
 
     if inclusive
-        running = v[begin]
-        for i in firstindex(v) + 1:lastindex(v)
+        running = init
+        for i in firstindex(v):lastindex(v)
             running = op(running, v[i])
             v[i] = running
         end

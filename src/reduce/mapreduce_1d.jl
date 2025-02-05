@@ -1,4 +1,4 @@
-@kernel inbounds=true cpu=false function _mapreduce_block!(@Const(src), dst, f, op, init)
+@kernel inbounds=true cpu=false function _mapreduce_block!(@Const(src), dst, f, op, neutral)
 
     @uniform N = @groupsize()[1]
     sdata = @localmem eltype(dst) (N,)
@@ -16,7 +16,7 @@
 
     i = ithread + iblock * (N * 0x2)
     if i >= len
-        sdata[ithread + 0x1] = init
+        sdata[ithread + 0x1] = neutral
     elseif i + N >= len
         sdata[ithread + 0x1] = f(src[i + 0x1])
     else
@@ -99,10 +99,10 @@
 end
 
 
-
 function mapreduce_1d(
     f, op, src::AbstractArray, backend::GPU;
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(src)),
 
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
@@ -120,19 +120,18 @@ function mapreduce_1d(
         return Base.mapreduce(f, op, h_src, init=init)
     end
 
-    # Figure out type for destination
-    dst_type = typeof(init)
-
     # Each thread will handle two elements
     num_per_block = 2 * block_size
     blocks = (len + num_per_block - 1) ÷ num_per_block
 
     if !isnothing(temp)
         @argcheck get_backend(temp) === get_backend(src)
-        @argcheck eltype(temp) === dst_type
+        @argcheck eltype(temp) === typeof(init)
         @argcheck length(temp) >= blocks * 2
         dst = temp
     else
+        # Figure out type for destination
+        dst_type = typeof(init)
         dst = similar(src, dst_type, blocks * 2)
     end
 
@@ -141,18 +140,17 @@ function mapreduce_1d(
     dst_view = @view dst[1:blocks]
 
     kernel! = _mapreduce_block!(backend, block_size)
-    kernel!(src_view, dst_view, f, op, init, ndrange=(block_size * blocks,))
+    kernel!(src_view, dst_view, f, op, neutral, ndrange=(block_size * blocks,))
 
     # As long as we still have blocks to process, swap between the src and dst pointers at
     # the beginning of the first and second halves of dst
     len = blocks
     if len < switch_below
         h_src = Vector(@view(dst[1:len]))
-        return Base.mapreduce(f, op, h_src, init=init)
+        return Base.reduce(op, h_src, init=init)
     end
 
     # Now all src elements have been passed through f; just do final reduction, no map needed
-    kernel2! = _reduce_block!(backend, block_size)
     p1 = @view dst[1:len]
     p2 = @view dst[blocks + 1:end]
 
@@ -160,7 +158,7 @@ function mapreduce_1d(
         blocks = (len + num_per_block - 1) ÷ num_per_block
 
         # Each block produces one reduced value
-        kernel2!(p1, p2, op, init, ndrange=(block_size * blocks,))
+        kernel!(p1, p2, identity, op, neutral, ndrange=(block_size * blocks,))
         len = blocks
 
         if len < switch_below
@@ -172,5 +170,6 @@ function mapreduce_1d(
         p1 = @view p1[1:len]
     end
 
-    return @allowscalar p1[1]
+    # The GPU kernel reduced all elements to one, but without the init value
+    return op(init, @allowscalar(p1[1]))
 end

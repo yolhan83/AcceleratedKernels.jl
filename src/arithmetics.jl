@@ -364,8 +364,9 @@ function count(
     switch_below::Int=0,
 )
     mapreduce(
-        x -> x ? one(eltype(init)) : zero(eltype(init)), +, src, backend;
+        x -> x ? one(typeof(init)) : zero(typeof(init)), +, src, backend;
         init=init,
+        neutral=zero(typeof(init)),
         dims=dims,
 
         scheduler=scheduler,
@@ -395,8 +396,9 @@ function count(
     switch_below::Int=0,
 )
     mapreduce(
-        x -> f(x) ? one(eltype(init)) : zero(eltype(init)), +, src, backend;
+        x -> f(x) ? one(typeof(init)) : zero(typeof(init)), +, src, backend;
         init=init,
+        neutral=zero(typeof(init)),
         dims=dims,
 
         scheduler=scheduler,
@@ -414,6 +416,7 @@ end
     cumsum(
         src::AbstractArray, backend::Backend=get_backend(src);
         init=zero(eltype(src)),
+        neutral=zero(eltype(src)),
         dims::Union{Nothing, Int}=nothing,
 
         # Algorithm choice
@@ -450,6 +453,7 @@ s = AK.cumsum(m, dims=1)
 function cumsum(
     src::AbstractArray, backend::Backend=get_backend(src);
     init=zero(eltype(src)),
+    neutral=zero(eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # Algorithm choice
@@ -463,6 +467,7 @@ function cumsum(
     accumulate(
         +, src, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         inclusive=true,
 
@@ -479,6 +484,7 @@ end
     cumprod(
         src::AbstractArray, backend::Backend=get_backend(src);
         init=one(eltype(src)),
+        neutral=one(eltype(src)),
         dims::Union{Nothing, Int}=nothing,
 
         # Algorithm choice
@@ -515,6 +521,7 @@ p = AK.cumprod(m, dims=1)
 function cumprod(
     src::AbstractArray, backend::Backend=get_backend(src);
     init=one(eltype(src)),
+    neutral=one(eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # Algorithm choice
@@ -528,6 +535,7 @@ function cumprod(
     accumulate(
         *, src, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         inclusive=true,
 

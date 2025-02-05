@@ -31,6 +31,7 @@ include("accumulate_cpu.jl")
     accumulate!(
         op, v::AbstractArray, backend::Backend=get_backend(v);
         init,
+        neutral=GPUArrays.neutral_element(op, eltype(v)),
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
@@ -46,6 +47,7 @@ include("accumulate_cpu.jl")
     accumulate!(
         op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(v);
         init,
+        neutral=GPUArrays.neutral_element(op, eltype(dst)),
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
@@ -79,7 +81,7 @@ For the 1D case (`dims=nothing`), the `alg` can be one of the following:
   blocks' results; requires device-level memory consistency guarantees, which Apple Metal does not
   provide.
 - `ScanPrefixes()`: a simpler algorithm that scans the prefixes of each block, with no lookback; it
-  has similar performance as `DecoupledLookback()` for large block sizes and small to medium arrays,
+  has similar performance as `DecoupledLookback()` for large block sizes, and small to medium arrays,
   but poorer scaling for many blocks; there is no performance degradation below `block_size^2`
   elements.
 
@@ -115,6 +117,7 @@ AK.accumulate!(+, v, alg=AK.ScanPrefixes())
 function accumulate!(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -128,7 +131,7 @@ function accumulate!(
 )
     _accumulate_impl!(
         op, v, backend,
-        init=init, dims=dims, inclusive=inclusive,
+        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
         alg=alg,
         block_size=block_size, temp=temp, temp_flags=temp_flags,
     )
@@ -138,6 +141,7 @@ end
 function accumulate!(
     op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(v);
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(dst)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -152,7 +156,7 @@ function accumulate!(
     copyto!(dst, src)
     _accumulate_impl!(
         op, dst, backend,
-        init=init, dims=dims, inclusive=inclusive,
+        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
         alg=alg,
         block_size=block_size, temp=temp, temp_flags=temp_flags,
     )
@@ -162,6 +166,7 @@ end
 function _accumulate_impl!(
     op, v::AbstractArray, backend::Backend;
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -176,13 +181,13 @@ function _accumulate_impl!(
         if isnothing(dims)
             return accumulate_1d!(
                 op, v, backend, alg,
-                init=init, inclusive=inclusive,
+                init=init, neutral=neutral, inclusive=inclusive,
                 block_size=block_size, temp=temp, temp_flags=temp_flags,
             )
         else
             return accumulate_nd!(
                 op, v, backend,
-                init=init, dims=dims, inclusive=inclusive,
+                init=init, neutral=neutral, dims=dims, inclusive=inclusive,
                 block_size=block_size,
             )
         end
@@ -206,6 +211,7 @@ end
     accumulate(
         op, v::AbstractArray, backend::Backend=get_backend(v);
         init,
+        neutral=GPUArrays.neutral_element(op, eltype(v)),
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
@@ -223,6 +229,7 @@ Out-of-place version of [`accumulate!`](@ref).
 function accumulate(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
+    neutral=GPUArrays.neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -240,6 +247,7 @@ function accumulate(
     accumulate!(
         op, vcopy, backend;
         init=init,
+        neutral=neutral,
         dims=dims,
         inclusive=inclusive,
 
