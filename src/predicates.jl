@@ -57,9 +57,9 @@ it in your application. When only one thread is needed, there is no overhead.
 
 ## GPU
 There are two possible `alg` choices:
-- `ConcurrentWrite()`: the default algorithm, using concurrent writing to a global flag; 
-  and uses a global flag to write the result; this is only one platform we are aware of (Intel UHD
-  620 integrated graphics cards) where such writes hang.
+- `ConcurrentWrite()`: the default algorithm, using concurrent writing to a global flag; there is
+  only one platform we are aware of (Intel UHD 620 integrated graphics cards) where multiple
+  threads writing to the same memory location - even if writing the same value - hang the device.
 - `MapReduce(; temp=nothing, switch_below=0)`: a conservative [`mapreduce`](@ref)-based
   implementation which can be used on all platforms, but does not use shortcircuiting
   optimisations. You can set the `temp` and `switch_below` keyword arguments to be forwarded to
@@ -201,9 +201,9 @@ it in your application. When only one thread is needed, there is no overhead.
 
 ## GPU
 There are two possible `alg` choices:
-- `ConcurrentWrite()`: the default algorithm, using concurrent writing to a global flag; 
-  and uses a global flag to write the result; this is only one platform we are aware of (Intel UHD
-  620 integrated graphics cards) where such writes hang.
+- `ConcurrentWrite()`: the default algorithm, using concurrent writing to a global flag; there is
+  only one platform we are aware of (Intel UHD 620 integrated graphics cards) where multiple
+  threads writing to the same memory location - even if writing the same value - hang the device.
 - `MapReduce(; temp=nothing, switch_below=0)`: a conservative [`mapreduce`](@ref)-based
   implementation which can be used on all platforms, but does not use shortcircuiting
   optimisations. You can set the `temp` and `switch_below` keyword arguments to be forwarded to
