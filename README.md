@@ -194,7 +194,7 @@ Again, this is only possible because of the unique Julia compilation model, the 
 
 
 ## 2. Status
-The AcceleratedKernels.jl sorters were adopted as the official [AMDGPU algorithms](https://github.com/JuliaGPU/AMDGPU.jl/pull/688)! The API is starting to stabilise; it follows the Julia standard library fairly closely - and additionally exposing all temporary arrays for memory reuse. For any new ideas / requests, please join the conversation on [Julia Discourse](https://discourse.julialang.org/t/ann-acceleratedkernels-jl-cross-architecture-parallel-algorithms-for-julias-gpu-backends/119698/16) or post [an issue](https://github.com/juliagpu/AcceleratedKernels.jl/issues).
+The AcceleratedKernels.jl GPU `sort` and `accumulate` implementations were adopted as the official [AMDGPU algorithms](https://github.com/JuliaGPU/AMDGPU.jl/pull/688)! The API is starting to stabilise; it follows the Julia standard library fairly closely - and additionally exposing all temporary arrays for memory reuse. For any new ideas / requests, please join the conversation on [Julia Discourse](https://discourse.julialang.org/t/ann-acceleratedkernels-jl-cross-architecture-parallel-algorithms-for-julias-gpu-backends/119698/16) or post [an issue](https://github.com/juliagpu/AcceleratedKernels.jl/issues).
 
 We have an extensive randomised test suite that we run on the CPU (single- and multi-threaded) backend on Windows, Ubuntu and MacOS for Julia LTS, Stable, and Pre-Release, plus the CUDA, AMDGPU, oneAPI and Metal backends on the [JuliaGPU buildkite](https://github.com/JuliaGPU/buildkite) - the exact same tests are run on all architectures to ensure uniform interfaces.
 
