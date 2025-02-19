@@ -1700,6 +1700,11 @@ end
         end
     end
 
+    # Test promotion to op-dictated type
+    xh = rand(Bool, 16)
+    x = array_from_host(xh)
+    @test Array(AK.cumsum(x)) == cumsum(xh)
+
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.cumsum(v, block_size=64)
