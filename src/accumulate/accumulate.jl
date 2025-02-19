@@ -71,11 +71,11 @@ For compatibility with the `Base.accumulate!` function, we provide the two-array
 we do not need the constraint of `dst` and `src` being different; to minimise memory use, we
 recommend using the single-array interface (the first one above).
 
-## CPU 
+## CPU
 The CPU implementation is currently single-threaded; we are waiting on a multithreaded
 implementation in OhMyThreads.jl ([issue](https://github.com/JuliaFolds2/OhMyThreads.jl/issues/129)).
 
-## GPU 
+## GPU
 For the 1D case (`dims=nothing`), the `alg` can be one of the following:
 - `DecoupledLookback()`: the default algorithm, using opportunistic lookback to reuse earlier
   blocks' results; requires device-level memory consistency guarantees, which Apple Metal does not
@@ -241,7 +241,7 @@ function accumulate(
     temp::Union{Nothing, AbstractArray}=nothing,
     temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
-    dst_type = promote_type(eltype(v), typeof(init))
+    dst_type = Base.promote_op(op, eltype(v), typeof(init))
     vcopy = similar(v, dst_type)
     copyto!(vcopy, v)
     accumulate!(
@@ -252,7 +252,7 @@ function accumulate(
         inclusive=inclusive,
 
         alg=alg,
-        
+
         block_size=block_size,
         temp=temp,
         temp_flags=temp_flags,
