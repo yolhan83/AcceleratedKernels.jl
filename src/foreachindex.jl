@@ -1,6 +1,14 @@
-@kernel cpu=false inbounds=true function _forindices_global!(f, indices)
-    i = @index(Global, Linear)
-    f(indices[i])
+@kernel inbounds=true cpu=false unsafe_indices=true function _forindices_global!(f, indices)
+
+    # Calculate global index
+    N = @groupsize()[1]
+    iblock = @index(Group, Linear)
+    ithread = @index(Local, Linear)
+    i = ithread + (iblock - 0x1) * N
+
+    if i <= length(indices)
+        f(indices[i])
+    end
 end
 
 
@@ -13,7 +21,8 @@ function _forindices_gpu(
 )
     # GPU implementation
     @argcheck block_size > 0
-    _forindices_global!(backend, block_size)(f, indices, ndrange=length(indices))
+    blocks = (length(indices) + block_size - 1) ÷ block_size
+    _forindices_global!(backend, block_size)(f, indices, ndrange=(block_size * blocks,))
     nothing
 end
 

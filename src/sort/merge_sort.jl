@@ -1,4 +1,4 @@
-@kernel inbounds=true function _merge_sort_block!(vec, comp)
+@kernel inbounds=true cpu=false unsafe_indices=true function _merge_sort_block!(vec, comp)
 
     @uniform N = @groupsize()[1]
     s_buf = @localmem eltype(vec) (N * 0x2,)
@@ -75,8 +75,9 @@
 end
 
 
-@kernel inbounds=true function _merge_sort_global!(@Const(vec_in), vec_out, comp, half_size_group)
-
+@kernel inbounds=true cpu=false unsafe_indices=true function _merge_sort_global!(
+    @Const(vec_in), vec_out, comp, half_size_group,
+)
     len = length(vec_in)
     N = @groupsize()[1]
 

@@ -24,7 +24,6 @@ end
 # Make array with highly unequal per-axis sizes
 s = MtlArray(rand(Int32(1):Int32(100), 10, 1_000_000))
 AK.reduce(+, s, init=zero(eltype(s)))
-ret
 
 # Correctness
 @assert sum_base(s, dims=1) == sum_ak(s, dims=1)
@@ -34,11 +33,11 @@ ret
 # Benchmarks
 println("\nReduction over small axis - AK vs Base")
 display(@benchmark sum_ak($s, dims=1))
-display(@benchmark sum_base($s, dims=1))
+# display(@benchmark sum_base($s, dims=1))
 
 println("\nReduction over long axis - AK vs Base")
 display(@benchmark sum_ak($s, dims=2))
-display(@benchmark sum_base($s, dims=2))
+# display(@benchmark sum_base($s, dims=2))
 
 
 
