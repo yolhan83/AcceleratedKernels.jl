@@ -1,4 +1,4 @@
-@kernel inbounds=true function _merge_sort_by_key_block!(keys, values, comp)
+@kernel inbounds=true cpu=false unsafe_indices=true function _merge_sort_by_key_block!(keys, values, comp)
 
     @uniform N = @groupsize()[1]
     s_keys = @localmem eltype(keys) (N * 0x2,)
@@ -97,9 +97,11 @@
 end
 
 
-@kernel inbounds=true function _merge_sort_by_key_global!(@Const(keys_in), keys_out,
-                                                          @Const(values_in), values_out,
-                                                          comp, half_size_group)
+@kernel inbounds=true cpu=false unsafe_indices=true function _merge_sort_by_key_global!(
+    @Const(keys_in), keys_out,
+    @Const(values_in), values_out,
+    comp, half_size_group,
+)
 
     len = length(keys_in)
     N = @groupsize()[1]

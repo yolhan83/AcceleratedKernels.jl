@@ -1,5 +1,6 @@
-@kernel inbounds=true cpu=false function _accumulate_nd_by_thread!(v, op, init, dims, inclusive)
-
+@kernel inbounds=true cpu=false unsafe_indices=true function _accumulate_nd_by_thread!(
+    v, op, init, dims, inclusive,
+)
     # One thread per outer dimension element, when there are more outer elements than in the
     # reduced dim e.g. accumulate(+, rand(3, 1000), dims=1) => only 3 elements in the accumulated
     # dim
@@ -57,8 +58,9 @@
 end
 
 
-@kernel inbounds=true cpu=false function _accumulate_nd_by_block!(v, op, init, neutral, dims, inclusive)
-
+@kernel inbounds=true cpu=false unsafe_indices=true function _accumulate_nd_by_block!(
+    v, op, init, neutral, dims, inclusive,
+)
     # NOTE: shmem_size MUST be greater than 2 * block_size
     # NOTE: block_size MUST be a power of 2
 

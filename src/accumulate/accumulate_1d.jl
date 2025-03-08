@@ -12,10 +12,11 @@ const ACC_FLAG_P::UInt8 = 1             # Only current block's prefix available
 end
 
 
-@kernel cpu=false inbounds=true function _accumulate_block!(op, v, init, neutral,
-                                                            inclusive,
-                                                            flags, prefixes)  # one per block
-
+@kernel cpu=false inbounds=true unsafe_indices=true function _accumulate_block!(
+    op, v, init, neutral,
+    inclusive,
+    flags, prefixes,                # one per block
+)
     # NOTE: shmem_size MUST be greater than 2 * block_size
     # NOTE: block_size MUST be a power of 2
     len = length(v)
@@ -147,7 +148,9 @@ end
 end
 
 
-@kernel cpu=false inbounds=true function _accumulate_previous!(op, v, flags, @Const(prefixes))
+@kernel cpu=false inbounds=true unsafe_indices=true function _accumulate_previous!(
+    op, v, flags, @Const(prefixes),
+)
 
     len = length(v)
     block_size = @groupsize()[1]
@@ -200,8 +203,9 @@ end
 end
 
 
-@kernel cpu=false inbounds=true function _accumulate_previous_coupled_preblocks!(op, v, prefixes)
-
+@kernel cpu=false inbounds=true unsafe_indices=true function _accumulate_previous_coupled_preblocks!(
+    op, v, prefixes,
+)
     # No decoupled lookback
     len = length(v)
     block_size = @groupsize()[1]

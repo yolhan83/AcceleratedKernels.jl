@@ -1,4 +1,4 @@
-@kernel inbounds=true cpu=false function _mapreduce_block!(@Const(src), dst, f, op, neutral)
+@kernel inbounds=true cpu=false unsafe_indices=true function _mapreduce_block!(@Const(src), dst, f, op, neutral)
 
     @uniform N = @groupsize()[1]
     sdata = @localmem eltype(dst) (N,)
