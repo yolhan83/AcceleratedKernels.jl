@@ -206,7 +206,7 @@ Some arithmetic-heavy benchmarks are given below - see [this repository](https:/
 
 ![Arithmetic benchmark](https://github.com/anicusan/AcceleratedKernels-Benchmark/blob/main/ArithmeticBenchmark/ArithmeticBenchmarkTable.png?raw=true)
 
-See `protoype/sort_benchmark.jl` for a small-scale sorting benchmark code and `prototype/thrust_sort` for the Nvidia Thrust wrapper. The results below are from a system with Linux 6.6.30-2-MANJARO, Intel Core i9-10885H CPU, Nvidia Quadro RTX 4000 with Max-Q Design GPU, Thrust 1.17.1-1, Julia Version 1.10.4.
+See `prototype/sort_benchmark.jl` for a small-scale sorting benchmark code and `prototype/thrust_sort` for the Nvidia Thrust wrapper. The results below are from a system with Linux 6.6.30-2-MANJARO, Intel Core i9-10885H CPU, Nvidia Quadro RTX 4000 with Max-Q Design GPU, Thrust 1.17.1-1, Julia Version 1.10.4.
 
 ![Sorting benchmark](https://github.com/juliagpu/AcceleratedKernels.jl/blob/main/docs/src/assets/sort_benchmark.png?raw=true)
 
@@ -294,7 +294,7 @@ Replace the `"--oneAPI"` with `"--CUDA"`, `"--AMDGPU"` or `"--Metal"` to test di
 
 Leave out to test the CPU backend:
 ```bash
-$> julia -e 'import Pkg; Pkg.test("AcceleratedKernels.jl")
+$> julia -e 'import Pkg; Pkg.test("AcceleratedKernels.jl")'
 ```
 
 
