@@ -274,12 +274,12 @@ function _mapreduce_impl(
             if num_tasks <= 1
                 return Base.mapreduce(f, op, src; init=init)
             end
-            return OMT.tmapreduce(
-                f, op, src, init=init,
+            return op(init, OMT.tmapreduce(
+                f, op, src; init=neutral,
                 scheduler=scheduler,
                 outputtype=typeof(init),
                 nchunks=num_tasks,
-            )
+            ))
         else
             # FIXME: waiting on OhMyThreads.jl for n-dimensional reduction
             return Base.mapreduce(f, op, src; init=init, dims=dims)
