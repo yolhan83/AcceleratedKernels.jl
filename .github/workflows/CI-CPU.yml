@@ -31,15 +31,27 @@ jobs:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
+          - macOS-13
         arch:
           - x64
           - x86
+          - aarch64
         env:
           - JULIA_NUM_THREADS: 1
           - JULIA_NUM_THREADS: 2
         exclude:
+          - os: macOS-13
+            arch: x86
+          - os: macOS-13
+            arch: aarch64
           - os: macOS-latest
             arch: x86
+          - os: macOS-latest
+            arch: x64
+          - os: ubuntu-latest
+            arch: aarch64
+          - os: windows-latest
+            arch: aarch64
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
