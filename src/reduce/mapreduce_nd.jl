@@ -327,16 +327,18 @@ function _mapreduce_nd_apply_init!(f, op, dst, src, backend, init, block_size)
 end
 
 
-function unrolled_map_index(f, tuple_vector::Tuple)
-    unrolled_map(FixedRange{1, length(tuple_vector)}()) do i
-        @inline f(i)
-    end
+# Unrolled map constructing a tuple
+@inline function unrolled_map_index(f, tuple_vector::Tuple)
+    _unrolled_map_index(f, tuple_vector, (), 1)
 end
 
 
-@inline @unroll function unrolled_foreach_index(f, tuple_vector::Tuple)
-    @unroll for i in 1:length(tuple_vector)
-        @inline f(tuple_vector, i)
-    end
-    nothing
+@inline function _unrolled_map_index(f, rest::Tuple{}, acc, i)
+    acc
+end
+
+
+@inline function _unrolled_map_index(f, rest::Tuple, acc, i)
+    result = f(i)
+    _unrolled_map_index(f, Base.tail(rest), (acc..., result), i + 1)
 end

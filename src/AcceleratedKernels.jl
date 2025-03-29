@@ -16,7 +16,6 @@ using GPUArrays: GPUArrays, AbstractGPUVector, AbstractGPUArray, @allowscalar
 using KernelAbstractions
 using Polyester: @batch
 import OhMyThreads as OMT
-using Unrolled: @unroll, unrolled_map, FixedRange
 
 
 # Exposed functions from upstream packages
