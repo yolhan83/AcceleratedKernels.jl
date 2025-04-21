@@ -139,7 +139,7 @@ end
 
 
 function accumulate!(
-    op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(v);
+    op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(dst);
     init,
     neutral=GPUArrays.neutral_element(op, eltype(dst)),
     dims::Union{Nothing, Int}=nothing,
