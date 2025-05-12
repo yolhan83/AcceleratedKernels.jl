@@ -1395,7 +1395,7 @@ end
             n3 = rand(1:100)
             vh = rand(Float32, n1, n2, n3)
             v = array_from_host(vh)
-            
+
             s = AK.accumulate(+, v; init=Float32(0), dims=dims)
             sh = Array(s)
             @test all(sh .≈ accumulate(+, vh, init=Float32(0), dims=dims))
@@ -1530,7 +1530,7 @@ end
     AK.searchsortedfirst(v, x, by=abs, lt=(>), rev=true, block_size=64)
     AK.searchsortedlast!(ix, v, x, by=abs, lt=(>), rev=true, block_size=64)
     AK.searchsortedlast(v, x, by=abs, lt=(>), rev=true, block_size=64)
- 
+
     vh = Array(v)
     xh = Array(x)
     ixh = similar(xh, Int32)
@@ -1771,7 +1771,9 @@ end
     for _ in 1:100
         num_elems = rand(1:100_000)
         v = array_from_host(rand(Float32, num_elems))
-        @test AK.count(x->x>0.5, v) == count(x->x>0.5, Array(v))
+        gpucount = AK.count(x->x>0.5, v)
+        cpucount = count(x->x>0.5, Array(v))
+        @test gpucount == cpucount
     end
 
     for _ in 1:100
@@ -1809,7 +1811,7 @@ end
 
 
 @testset "cumsum" begin
-    
+
     Random.seed!(0)
 
     # Simple correctness tests
@@ -1858,7 +1860,7 @@ end
 
 
 @testset "cumprod" begin
-    
+
     Random.seed!(0)
 
     # Simple correctness tests
