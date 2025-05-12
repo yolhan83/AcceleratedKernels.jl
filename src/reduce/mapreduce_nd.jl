@@ -188,7 +188,7 @@ end
 function mapreduce_nd(
     f, op, src::AbstractArray, backend::GPU;
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(src)),
+    neutral=neutral_element(op, eltype(src)),
     dims::Int,
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
@@ -324,7 +324,7 @@ end
 function _mapreduce_nd_apply_init!(f, op, dst, src, backend, init, block_size)
     foreachindex(
         dst, backend,
-        block_size=block_size,    
+        block_size=block_size,
     ) do i
         dst[i] = op(init, f(src[i]))
     end

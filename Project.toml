@@ -5,7 +5,7 @@ version = "0.3.4"
 
 [deps]
 ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
-GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
+GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 OhMyThreads = "67456a42-1dca-4109-a031-0a68de7e3ad5"
@@ -21,7 +21,7 @@ AcceleratedKernelsoneAPIExt = "oneAPI"
 
 [compat]
 ArgCheck = "2"
-GPUArrays = "10, 11"
+GPUArraysCore = "0.2.0"
 KernelAbstractions = "0.9.34"
 Markdown = "1"
 Metal = "1"

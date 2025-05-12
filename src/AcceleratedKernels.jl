@@ -12,7 +12,7 @@ module AcceleratedKernels
 
 # Internal dependencies
 using ArgCheck: @argcheck
-using GPUArrays: GPUArrays, AbstractGPUVector, AbstractGPUArray, @allowscalar
+using GPUArraysCore: GPUArrays, AbstractGPUVector, AbstractGPUArray, @allowscalar
 using KernelAbstractions
 using Polyester: @batch
 import OhMyThreads as OMT
@@ -21,7 +21,6 @@ import OhMyThreads as OMT
 # Exposed functions from upstream packages
 const synchronize = KernelAbstractions.synchronize
 const get_backend = KernelAbstractions.get_backend
-const neutral_element = GPUArrays.neutral_element
 
 
 # Include code from other files

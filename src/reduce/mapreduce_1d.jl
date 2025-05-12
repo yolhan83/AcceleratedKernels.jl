@@ -102,7 +102,7 @@ end
 function mapreduce_1d(
     f, op, src::AbstractArray, backend::GPU;
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(src)),
+    neutral=neutral_element(op, eltype(src)),
 
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
