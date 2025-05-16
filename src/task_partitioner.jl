@@ -179,3 +179,63 @@ function task_partition(f, tp::TaskPartitioner)
     end
 end
 
+
+
+
+"""
+    itask_partition(f, num_elems, max_tasks=Threads.nthreads(), min_elems=1)
+    itask_partition(f, tp::TaskPartitioner)
+
+Partition `num_elems` jobs across at most `num_tasks` parallel tasks with at least `min_elems` per
+task, calling `f(itask, start_index:end_index)`, where the indices are between 1 and `num_elems`.
+
+# Examples
+A toy example showing outputs:
+```julia
+num_elems = 4
+itask_partition(println, num_elems)
+
+# Output, possibly in a different order due to threading order
+TODO
+```
+
+This function is probably most useful with a do-block, e.g.:
+```julia
+task_partition(4) do itask, irange
+    some_long_computation_needing_itask(param1, param2, irange)
+end
+```
+"""
+function itask_partition(f, num_elems, max_tasks=Threads.nthreads(), min_elems=1)
+    num_elems >= 0 || throw(ArgumentError("num_elems must be >= 0"))
+    max_tasks > 0 || throw(ArgumentError("max_tasks must be > 0"))
+    min_elems > 0 || throw(ArgumentError("min_elems must be > 0"))
+
+    if min(max_tasks, num_elems ÷ min_elems) <= 1
+        @inline f(1:num_elems)
+    else
+        # Compiler should decide if this should be inlined; threading adds quite a bit of code, it
+        # is faster (as seen in Cthulhu) to keep it in a separate self-contained function
+        tp = TaskPartitioner(num_elems, max_tasks, min_elems)
+        itask_partition(f, tp)
+    end
+    nothing
+end
+
+
+function itask_partition(f, tp::TaskPartitioner)
+    tasks = Vector{Task}(undef, tp.num_tasks - 1)
+
+    # Launch first N - 1 tasks
+    for i in 1:tp.num_tasks - 1
+        tasks[i] = Threads.@spawn f(i, @inbounds(tp[i]))
+    end
+
+    # Execute task N on this main thread
+    f(tp.num_tasks, @inbounds(tp[tp.num_tasks]))
+
+    # Wait for the tasks to finish
+    @inbounds for i in 1:tp.num_tasks - 1
+        wait(tasks[i])
+    end
+end
