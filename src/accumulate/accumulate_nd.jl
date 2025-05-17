@@ -254,7 +254,7 @@ end
 function accumulate_nd!(
     op, v::AbstractArray, backend::GPU;
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(v)),
+    neutral=neutral_element(op, eltype(v)),
     dims::Int,
     inclusive::Bool=true,
 

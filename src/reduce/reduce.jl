@@ -1,3 +1,18 @@
+# neutral_element moved over from GPUArrays.jl
+neutral_element(op, T) =
+    error("""AcceleratedKernels.jl needs to know the neutral element for your operator `$op`.
+             Please pass it as an explicit keyword argument `neutral`.""")
+neutral_element(::typeof(Base.:(|)), T) = zero(T)
+neutral_element(::typeof(Base.:(+)), T) = zero(T)
+neutral_element(::typeof(Base.add_sum), T) = zero(T)
+neutral_element(::typeof(Base.:(&)), T) = one(T)
+neutral_element(::typeof(Base.:(*)), T) = one(T)
+neutral_element(::typeof(Base.mul_prod), T) = one(T)
+neutral_element(::typeof(Base.min), T) = typemax(T)
+neutral_element(::typeof(Base.max), T) = typemin(T)
+neutral_element(::typeof(Base._extrema_rf), ::Type{<:NTuple{2,T}}) where {T} = typemax(T), typemin(T)
+
+
 include("mapreduce_1d.jl")
 include("mapreduce_nd.jl")
 
@@ -6,7 +21,7 @@ include("mapreduce_nd.jl")
     reduce(
         op, src::AbstractArray, backend::Backend=get_backend(src);
         init,
-        neutral=GPUArrays.neutral_element(op, eltype(src)),
+        neutral=neutral_element(op, eltype(src)),
         dims::Union{Nothing, Int}=nothing,
 
         # CPU settings
@@ -72,7 +87,7 @@ mcolsum = AK.reduce(+, m; init=zero(eltype(m)), dims=2)
 function reduce(
     op, src::AbstractArray, backend::Backend=get_backend(src);
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(src)),
+    neutral=neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -103,7 +118,7 @@ end
 function _reduce_impl(
     op, src::AbstractArray, backend;
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(src)),
+    neutral=neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -137,7 +152,7 @@ end
     mapreduce(
         f, op, src::AbstractArray, backend::Backend=get_backend(src);
         init,
-        neutral=GPUArrays.neutral_element(op, eltype(src)),
+        neutral=neutral_element(op, eltype(src)),
         dims::Union{Nothing, Int}=nothing,
 
         # CPU settings
@@ -203,7 +218,7 @@ mcolsumsq = AK.mapreduce(f, +, m; init=zero(eltype(m)), dims=2)
 function mapreduce(
     f, op, src::AbstractArray, backend::Backend=get_backend(src);
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(src)),
+    neutral=neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings
@@ -234,7 +249,7 @@ end
 function _mapreduce_impl(
     f, op, src::AbstractArray, backend::Backend;
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(src)),
+    neutral=neutral_element(op, eltype(src)),
     dims::Union{Nothing, Int}=nothing,
 
     # CPU settings

@@ -31,7 +31,7 @@ include("accumulate_cpu.jl")
     accumulate!(
         op, v::AbstractArray, backend::Backend=get_backend(v);
         init,
-        neutral=GPUArrays.neutral_element(op, eltype(v)),
+        neutral=neutral_element(op, eltype(v)),
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
@@ -47,7 +47,7 @@ include("accumulate_cpu.jl")
     accumulate!(
         op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(v);
         init,
-        neutral=GPUArrays.neutral_element(op, eltype(dst)),
+        neutral=neutral_element(op, eltype(dst)),
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
@@ -117,7 +117,7 @@ AK.accumulate!(+, v, alg=AK.ScanPrefixes())
 function accumulate!(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(v)),
+    neutral=neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -141,7 +141,7 @@ end
 function accumulate!(
     op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(dst);
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(dst)),
+    neutral=neutral_element(op, eltype(dst)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -166,7 +166,7 @@ end
 function _accumulate_impl!(
     op, v::AbstractArray, backend::Backend;
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(v)),
+    neutral=neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
@@ -211,7 +211,7 @@ end
     accumulate(
         op, v::AbstractArray, backend::Backend=get_backend(v);
         init,
-        neutral=GPUArrays.neutral_element(op, eltype(v)),
+        neutral=neutral_element(op, eltype(v)),
         dims::Union{Nothing, Int}=nothing,
         inclusive::Bool=true,
 
@@ -229,7 +229,7 @@ Out-of-place version of [`accumulate!`](@ref).
 function accumulate(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
-    neutral=GPUArrays.neutral_element(op, eltype(v)),
+    neutral=neutral_element(op, eltype(v)),
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
