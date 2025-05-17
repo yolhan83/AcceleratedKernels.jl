@@ -14,12 +14,15 @@ AcceleratedKernels.sortperm
 ```
 
 Specific implementations that the interfaces above forward to:
+- `sample_sort!` - multithreaded CPU sample sort, deferring to Base.sort! on independent slices.
 - `merge_sort!` (in-place), `merge_sort` (out-of-place) - sort arbitrary objects with custom comparisons.
 - `merge_sort_by_key!`, `merge_sort_by_key` - sort a vector of keys along with a "payload", a vector of corresponding values.
 - `merge_sortperm!`, `merge_sortperm`, `merge_sortperm_lowmem!`, `merge_sortperm_lowmem` - compute a sorting index permutation. 
 
 Function signatures:
 ```@docs
+AcceleratedKernels.sample_sort!
+AcceleratedKernels.sample_sortperm!
 AcceleratedKernels.merge_sort!
 AcceleratedKernels.merge_sort
 AcceleratedKernels.merge_sort_by_key!

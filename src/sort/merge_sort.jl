@@ -125,27 +125,27 @@ end
 
 """
     merge_sort!(
-        v::AbstractArray, backend::Backend=get_backend(v);
+        v::AbstractGPUArray, backend::Backend=get_backend(v);
 
         lt=isless,
         by=identity,
-        rev::Bool=false,
+        rev::Union{Nothing, Bool}=nothing,
         order::Base.Order.Ordering=Base.Order.Forward,
 
         block_size::Int=256,
-        temp::Union{Nothing, AbstractArray}=nothing,
+        temp::Union{Nothing, AbstractGPUArray}=nothing,
     )
 """
 function merge_sort!(
-    v::AbstractArray, backend::Backend=get_backend(v);
+    v::AbstractGPUArray, backend::Backend=get_backend(v);
 
     lt=isless,
     by=identity,
-    rev::Bool=false,
+    rev::Union{Nothing, Bool}=nothing,
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
+    temp::Union{Nothing, AbstractGPUArray}=nothing,
 )
     # Simple sanity checks
     @argcheck block_size > 0
@@ -195,27 +195,27 @@ end
 
 """
     merge_sort(
-        v::AbstractVector, backend::Backend=get_backend(v);
+        v::AbstractGPUArray, backend::Backend=get_backend(v);
 
         lt=isless,
         by=identity,
-        rev::Bool=false,
+        rev::Union{Nothing, Bool}=nothing,
         order::Base.Order.Ordering=Base.Order.Forward,
 
         block_size::Int=256,
-        temp::Union{Nothing, AbstractGPUVector}=nothing,
+        temp::Union{Nothing, AbstractGPUArray}=nothing,
     )
 """
 function merge_sort(
-    v::AbstractVector, backend::Backend=get_backend(v);
+    v::AbstractGPUArray, backend::Backend=get_backend(v);
 
     lt=isless,
     by=identity,
-    rev::Bool=false,
+    rev::Union{Nothing, Bool}=nothing,
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp::Union{Nothing, AbstractGPUVector}=nothing,
+    temp::Union{Nothing, AbstractGPUArray}=nothing,
 )
     v_copy = copy(v)
     merge_sort!(

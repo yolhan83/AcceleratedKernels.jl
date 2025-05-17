@@ -1,4 +1,4 @@
-[![AcceleratedKernels.jl](https://github.com/juliagpu/AcceleratedKernels.jl/blob/main/docs/src/assets/banner.png?raw=true)](https://juliagpu.github.io/AcceleratedKernels.jl)
+[![AcceleratedKernels.jl](https://github.com/juliagpu/AcceleratedKernels.jl/blob/main/docs/src/assets/logo.png?raw=true)](https://juliagpu.github.io/AcceleratedKernels.jl)
 
 *"We need more speed" - Lightning McQueen or Scarface, I don't know*
 
@@ -232,6 +232,7 @@ If you need other algorithms in your work that may be of general use, please ope
 | [General Looping](https://juliagpu.github.io/AcceleratedKernels.jl/stable/api/foreachindex/) | `foreachindex`, `foraxes`                        | `Kokkos::parallel_for` `RAJA::forall` `thrust::transform` |
 | [Mapping](https://juliagpu.github.io/AcceleratedKernels.jl/stable/api/map/) | `map` `map!`                                     | `thrust::transform`                                       |
 | [Sorting](https://juliagpu.github.io/AcceleratedKernels.jl/stable/api/sort/) | `sort` `sort!`                                   | `sort` `sort_team` `stable_sort`                          |
+|                                               | `sample_sort!` `sample_sortperm!`                |                                                           |
 |                                               | `merge_sort` `merge_sort!`                       |                                                           |
 |                                               | `merge_sort_by_key` `merge_sort_by_key!`         | `sort_team_by_key`                                        |
 |                                               | `sortperm` `sortperm!`                           | `sort_permutation` `index_permutation`                    |

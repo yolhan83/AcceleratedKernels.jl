@@ -161,7 +161,7 @@ end
 
         lt=isless,
         by=identity,
-        rev::Bool=false,
+        rev::Union{Nothing, Bool}=nothing,
         order::Base.Order.Ordering=Base.Order.Forward,
 
         block_size::Int=256,
@@ -176,7 +176,7 @@ function merge_sort_by_key!(
 
     lt=isless,
     by=identity,
-    rev::Bool=false,
+    rev::Union{Nothing, Bool}=nothing,
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
@@ -241,33 +241,33 @@ end
 
 """
     merge_sort_by_key(
-        keys::AbstractGPUVector,
-        values::AbstractGPUVector,
+        keys::AbstractGPUArray,
+        values::AbstractGPUArray,
         backend::Backend=get_backend(keys);
 
         lt=isless,
         by=identity,
-        rev::Bool=false,
+        rev::Union{Nothing, Bool}=nothing,
         order::Base.Order.Ordering=Base.Order.Forward,
 
         block_size::Int=256,
-        temp_keys::Union{Nothing, AbstractGPUVector}=nothing,
-        temp_values::Union{Nothing, AbstractGPUVector}=nothing,
+        temp_keys::Union{Nothing, AbstractGPUArray}=nothing,
+        temp_values::Union{Nothing, AbstractGPUArray}=nothing,
     )
 """
 function merge_sort_by_key(
-    keys::AbstractGPUVector,
-    values::AbstractGPUVector,
+    keys::AbstractGPUArray,
+    values::AbstractGPUArray,
     backend::Backend=get_backend(keys);
 
     lt=isless,
     by=identity,
-    rev::Bool=false,
+    rev::Union{Nothing, Bool}=nothing,
     order::Base.Order.Ordering=Base.Order.Forward,
 
     block_size::Int=256,
-    temp_keys::Union{Nothing, AbstractGPUVector}=nothing,
-    temp_values::Union{Nothing, AbstractGPUVector}=nothing,
+    temp_keys::Union{Nothing, AbstractGPUArray}=nothing,
+    temp_values::Union{Nothing, AbstractGPUArray}=nothing,
 )
     keys_copy = copy(keys)
     values_copy = copy(values)

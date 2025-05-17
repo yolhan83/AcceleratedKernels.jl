@@ -91,12 +91,45 @@ end
 
     # Multi-threaded
     x = zeros(Int, 1000)
-    AK.task_partition(length(x), 10, 1) do irange
+    tp = AK.TaskPartitioner(length(x), 10, 1)
+    AK.task_partition(tp) do irange
         for i in irange
             x[i] = i
         end
     end
     @test all(x .== 1:length(x))
+end
+
+
+@testset "itask_partition" begin
+    Random.seed!(0)
+
+    # Single-threaded
+    x = zeros(Int, 1000)
+    ix = zeros(Int, 1000)
+    AK.itask_partition(length(x), 1, 1) do itask, irange
+        for i in irange
+            x[i] = i
+            ix[i] = itask
+        end
+    end
+    @test all(x .== 1:length(x))
+    @test all(ix .== 1)
+
+    # Multi-threaded
+    x = zeros(Int, 1000)
+    ix = zeros(Int, 1000)
+    tp = AK.TaskPartitioner(length(x), 10, 1)
+    AK.itask_partition(tp) do itask, irange
+        for i in irange
+            x[i] = i
+            ix[i] = itask
+        end
+    end
+    @test all(x .== 1:length(x))
+    for i in 1:tp.num_tasks
+        @test all(ix[tp[i]] .== i)
+    end
 end
 
 
@@ -308,13 +341,54 @@ if backend != CPU()
     @test issorted(Array(v))
 
     v = array_from_host(1:10_000, Float32)
-    AK.merge_sort(v, lt=(>), by=abs, rev=true,
-                block_size=64, temp=array_from_host(1:10_000, Float32))
+    v = AK.merge_sort(v, lt=(>), by=abs, rev=true,
+                      block_size=64, temp=array_from_host(1:10_000, Float32))
     @test issorted(Array(v))
 
     v = array_from_host(1:10_000, Int32)
-    AK.merge_sort(v, lt=(>), by=abs, rev=true,
-                block_size=64, temp=array_from_host(1:10_000, Int32))
+    v = AK.merge_sort(v, lt=(>), by=abs, rev=true,
+                      block_size=64, temp=array_from_host(1:10_000, Int32))
+    @test issorted(Array(v))
+end
+
+else # CPU backend
+@testset "sample_sort" begin
+    Random.seed!(0)
+
+    # Fuzzy correctness testing
+    for _ in 1:1000
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(Int32, num_elems))
+        AK.sample_sort!(v)
+        vh = Array(v)
+        @test issorted(vh)
+    end
+
+    for _ in 1:1000
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(UInt32, num_elems))
+        AK.sample_sort!(v)
+        vh = Array(v)
+        @test issorted(vh)
+    end
+
+    for _ in 1:1000
+        num_elems = rand(1:100_000)
+        v = array_from_host(rand(Float32, num_elems))
+        AK.sample_sort!(v)
+        vh = Array(v)
+        @test issorted(vh)
+    end
+
+    # Testing different settings
+    v = array_from_host(rand(1:100_000, 10_000), Float32)
+    AK.sample_sort!(v, lt=(>), by=abs, rev=true,
+                    max_tasks=64, temp=array_from_host(1:10_000, Float32))
+    @test issorted(Array(v))
+
+    v = array_from_host(rand(1:100_000, 10_000), Int32)
+    AK.sample_sort!(v, lt=(>), rev=true,
+                    max_tasks=64, temp=array_from_host(1:10_000, Int32))
     @test issorted(Array(v))
 end
 end
@@ -349,24 +423,28 @@ end
     end
 
     # Testing different settings
-    v = array_from_host(1:10_000, Float32)
+    v = array_from_host(rand(1:100_000, 10_000), Float32)
     AK.sort!(v, lt=(>), by=abs, rev=true,
-             block_size=64, temp=array_from_host(1:10_000, Float32))
+             max_tasks=64, block_size=64,
+             temp=array_from_host(1:10_000, Float32))
     @test issorted(Array(v))
 
-    v = array_from_host(1:10_000, Int32)
+    v = array_from_host(rand(1:100_000, 10_000), Int32)
     AK.sort!(v, lt=(>), rev=true,
-             block_size=64, temp=array_from_host(1:10_000, Int32))
+             max_tasks=64, block_size=64,
+             temp=array_from_host(1:10_000, Int32))
     @test issorted(Array(v))
 
-    v = array_from_host(1:10_000, Float32)
-    AK.sort(v, lt=(>), by=abs, rev=true,
-            block_size=64, temp=array_from_host(1:10_000, Float32))
+    v = array_from_host(rand(1:100_000, 10_000), Float32)
+    v = AK.sort(v, lt=(>), by=abs, rev=true,
+                max_tasks=64, block_size=64,
+                temp=array_from_host(1:10_000, Float32))
     @test issorted(Array(v))
 
-    v = array_from_host(1:10_000, Int32)
-    AK.sort(v, lt=(>), by=abs, rev=true,
-            block_size=64, temp=array_from_host(1:10_000, Int32))
+    v = array_from_host(rand(1:100_000, 10_000), Int32)
+    v = AK.sort(v, lt=(>), by=abs, rev=true,
+                max_tasks=64, block_size=64,
+                temp=array_from_host(1:10_000, Int32))
     @test issorted(Array(v))
 end
 
@@ -507,6 +585,54 @@ if backend != CPU()
                         inplace=true, block_size=64,
                         temp_ix=array_from_host(1:10_000, Int),
                         temp_v=array_from_host(1:10_000, Float32))
+    ixh = Array(ix)
+    vh = Array(v)
+    @test issorted(vh[ixh])
+end
+
+else # CPU backend
+@testset "sample_sortperm" begin
+    Random.seed!(0)
+
+    # Fuzzy correctness testing
+    for _ in 1:1000
+        num_elems = rand(1:100_000)
+        ix = array_from_host(zeros(Int32, num_elems))
+        v = array_from_host(rand(Int32, num_elems))
+        AK.sample_sortperm!(ix, v)
+        ixh = Array(ix)
+        vh = Array(v)
+        @test issorted(vh[ixh])
+    end
+
+    for _ in 1:1000
+        num_elems = rand(1:100_000)
+        ix = array_from_host(zeros(Int32, num_elems))
+        v = array_from_host(rand(UInt32, num_elems))
+        AK.sample_sortperm!(ix, v)
+        ixh = Array(ix)
+        vh = Array(v)
+        @test issorted(vh[ixh])
+    end
+
+    for _ in 1:1000
+        num_elems = rand(1:100_000)
+        ix = array_from_host(zeros(Int32, num_elems))
+        v = array_from_host(rand(Float32, num_elems))
+        AK.sample_sortperm!(ix, v)
+        ixh = Array(ix)
+        vh = Array(v)
+        @test issorted(vh[ixh])
+    end
+
+    # Testing different settings
+    ix = array_from_host(1:10_000, Int32)
+    v = array_from_host(1:10_000, Float32)
+    AK.sample_sortperm!(ix,
+                    v,
+                    lt=(>), by=abs, rev=true,
+                    max_tasks=64,
+                    temp=array_from_host(1:10_000, Int32))
     ixh = Array(ix)
     vh = Array(v)
     @test issorted(vh[ixh])
@@ -734,6 +860,15 @@ end
         @test s == reduce(+, vh, init=init)
     end
 
+    # Test with unmaterialised ranges
+    for _ in 1:100
+        num_elems = rand(1:1000)
+        v = 1:num_elems
+        s = AK.reduce(+, v, backend; init=Int32(0))
+        vh = Array(v)
+        @test s == reduce(+, vh)
+    end
+
     # Testing different settings
     AK.reduce(
         (x, y) -> x + 1,
@@ -945,6 +1080,15 @@ end
         s = AK.mapreduce(abs, +, v; switch_below=switch_below, init=Int32(init))
         vh = Array(v)
         @test s == mapreduce(abs, +, vh, init=init)
+    end
+
+    # Test with unmaterialised ranges
+    for _ in 1:100
+        num_elems = rand(1:1000)
+        v = 1:num_elems
+        s = AK.mapreduce(abs, +, v, backend; init=Int32(0))
+        vh = Array(v)
+        @test s == mapreduce(abs, +, vh)
     end
 
     # Testing different settings, enforcing change of type between f and op

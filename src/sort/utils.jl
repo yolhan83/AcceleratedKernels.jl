@@ -62,3 +62,38 @@ end
     end
     return right
 end
+
+
+
+
+# Create an integer linear space between start and stop on demand
+struct IntLinSpace{T <: Integer}
+    start::T
+    stop::T
+    length::T
+end
+
+function IntLinSpace(start::Integer, stop::Integer, length::Integer)
+    start <= stop || throw(ArgumentError("`start` must be <= `stop`"))
+    length >= 2 || throw(ArgumentError("`length` must be >= 2"))
+
+    IntLinSpace{typeof(start)}(start, stop, length)
+end
+
+Base.IndexStyle(::IntLinSpace) = IndexLinear()
+Base.length(ils::IntLinSpace) = ils.length
+
+Base.firstindex(::IntLinSpace) = 1
+Base.lastindex(ils::IntLinSpace) = ils.length
+
+function Base.getindex(ils::IntLinSpace, i)
+    @boundscheck 1 <= i <= ils.length || throw(BoundsError(ils, i))
+
+    if i == 1
+        ils.start
+    elseif i == length
+        ils.stop
+    else
+        ils.start + div((i - 1) * (ils.stop - ils.start), ils.length - 1, RoundUp)
+    end
+end

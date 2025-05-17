@@ -209,8 +209,9 @@ function mapreduce_nd(
     src_sizes = size(src)
     if dims > length(src_sizes)
         if isnothing(temp)
-            dst = similar(src, typeof(init), src_sizes)
+            dst = KernelAbstractions.allocate(backend, typeof(init), src_sizes)
         else
+            @argcheck get_backend(temp) == backend
             @argcheck size(temp) == src_sizes
             @argcheck eltype(temp) == typeof(init)
             dst = temp
@@ -233,7 +234,7 @@ function mapreduce_nd(
         isize == dims && continue
         if src_sizes[isize] == 0
             if isnothing(temp)
-                dst = similar(src, typeof(init), dst_sizes)
+                dst = KernelAbstractions.allocate(backend, typeof(init), dst_sizes)
             else
                 @argcheck size(temp) == dst_sizes
                 @argcheck eltype(temp) == typeof(init)
@@ -255,8 +256,9 @@ function mapreduce_nd(
     len = src_sizes[dims]
     if len == 0
         if isnothing(temp)
-            dst = similar(src, typeof(init), dst_sizes)
+            dst = KernelAbstractions.allocate(backend, typeof(init), dst_sizes)
         else
+            @argcheck get_backend(temp) == backend
             @argcheck size(temp) == dst_sizes
             @argcheck eltype(temp) == typeof(init)
             dst = temp
@@ -268,8 +270,9 @@ function mapreduce_nd(
     # If sizes[dims] == 1, just map each element through f. Again, keep same type as init
     if len == 1
         if isnothing(temp)
-            dst = similar(src, typeof(init), src_sizes)
+            dst = KernelAbstractions.allocate(backend, typeof(init), src_sizes)
         else
+            @argcheck get_backend(temp) == backend
             @argcheck size(temp) == src_sizes
             @argcheck eltype(temp) == typeof(init)
             dst = temp
@@ -282,8 +285,9 @@ function mapreduce_nd(
 
     # Allocate destination array
     if isnothing(temp)
-        dst = similar(src, typeof(init), dst_sizes)
+        dst = KernelAbstractions.allocate(backend, typeof(init), dst_sizes)
     else
+        @argcheck get_backend(temp) == backend
         @argcheck size(temp) == dst_sizes
         @argcheck eltype(temp) == typeof(init)
         dst = temp
