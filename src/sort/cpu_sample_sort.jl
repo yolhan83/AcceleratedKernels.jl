@@ -13,6 +13,31 @@ function _sample_sort_histogram!(
 end
 
 
+function _sample_sort_compute_offsets!(histograms, max_tasks)
+    @inbounds begin
+        # Sum up histograms and compute global offsets for each task
+        offsets = @view histograms[1:max_tasks, max_tasks + 1]
+        for itask in 1:max_tasks
+            for j in 1:max_tasks
+                offsets[j] += histograms[j, itask]
+            end
+        end
+        accumulate!(+, offsets, init=0, inclusive=false)
+
+        # Compute each task's local offset into each bucket
+        for itask in 1:max_tasks
+            accumulate!(
+                +, @view(histograms[itask, 1:max_tasks]),
+                init=0,
+                inclusive=false,
+            )
+        end
+    end
+
+    offsets
+end
+
+
 function _sample_sort_move_buckets!(
     v, dest, ord,
     splitters, global_offsets, task_offsets,
@@ -38,31 +63,6 @@ function _sample_sort_move_buckets!(
     end
 
     nothing
-end
-
-
-function _sample_sort_compute_offsets!(histograms, max_tasks)
-    @inbounds begin
-        # Sum up histograms and compute global offsets for each task
-        offsets = @view histograms[1:max_tasks, max_tasks + 1]
-        for itask in 1:max_tasks
-            for j in 1:max_tasks
-                offsets[j] += histograms[j, itask]
-            end
-        end
-        accumulate!(+, offsets, init=0, inclusive=false)
-
-        # Compute each task's local offset into each bucket
-        for itask in 1:max_tasks
-            accumulate!(
-                +, @view(histograms[itask, 1:max_tasks]),
-                init=0,
-                inclusive=false,
-            )
-        end
-    end
-
-    offsets
 end
 
 

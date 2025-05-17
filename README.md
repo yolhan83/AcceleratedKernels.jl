@@ -272,6 +272,7 @@ function compute_minima(points)
         (a, b) -> (min(a[1], b[1]), min(a[2], b[2])),   # Keep each coordinate's minimum
         points,
         init=(typemax(Float32), typemax(Float32)),
+        neutral=(typemax(Float32), typemax(Float32)),
     )
 end
 
