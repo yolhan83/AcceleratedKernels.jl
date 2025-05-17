@@ -1,4 +1,4 @@
-[![AcceleratedKernels.jl](https://github.com/juliagpu/AcceleratedKernels.jl/blob/main/docs/src/assets/banner.png?raw=true)](https://juliagpu.github.io/AcceleratedKernels.jl)
+[![AcceleratedKernels.jl](https://github.com/juliagpu/AcceleratedKernels.jl/blob/main/docs/src/assets/logo.png?raw=true)](https://juliagpu.github.io/AcceleratedKernels.jl)
 
 *"We need more speed" - Lightning McQueen or Scarface, I don't know*
 

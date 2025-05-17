@@ -193,10 +193,15 @@ task, calling `f(itask, start_index:end_index)`, where the indices are between 1
 A toy example showing outputs:
 ```julia
 num_elems = 4
-itask_partition(println, num_elems)
+itask_partition(num_elems) do itask, irange
+    @show (itask, irange)
+end
 
 # Output, possibly in a different order due to threading order
-TODO
+(itask, irange) = (3, 3:3)
+(itask, irange) = (1, 1:1)
+(itask, irange) = (2, 2:2)
+(itask, irange) = (4, 4:4)
 ```
 
 This function is probably most useful with a do-block, e.g.:
