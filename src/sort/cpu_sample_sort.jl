@@ -1,5 +1,5 @@
 function _sample_sort_histogram!(
-    v::AbstractVector{T}, ord,
+    v::AbstractArray{T}, ord,
     splitters::Vector{T}, histograms::Matrix{Int},
     itask, irange,
 ) where T
@@ -177,6 +177,7 @@ end
         order::Base.Order.Ordering=Base.Order.Forward,
 
         max_tasks=Threads.nthreads(),
+        min_elems=1,
         temp::Union{Nothing, AbstractArray}=nothing,
     )
 """
@@ -189,6 +190,7 @@ function sample_sort!(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     max_tasks=Threads.nthreads(),
+    min_elems=1,
     temp::Union{Nothing, AbstractArray}=nothing,
 )
     # Sanity checks
@@ -203,7 +205,8 @@ function sample_sort!(
     if num_elements < 2
         return v
     end
-    if max_tasks == 1 || num_elements < oversampling_factor * max_tasks
+    max_tasks = min(max_tasks, num_elements ÷ min_elems)
+    if max_tasks <= 1 || num_elements < oversampling_factor * max_tasks
         return Base.sort!(v, lt=lt, by=by, rev=rev, order=order)
     end
 
@@ -260,6 +263,7 @@ end
         order::Base.Order.Ordering=Base.Order.Forward,
 
         max_tasks=Threads.nthreads(),
+        min_elems=1,
         temp::Union{Nothing, AbstractArray}=nothing,
     )
 """
@@ -272,6 +276,7 @@ function sample_sortperm!(
     order::Base.Order.Ordering=Base.Order.Forward,
 
     max_tasks=Threads.nthreads(),
+    min_elems=1,
     temp::Union{Nothing, AbstractArray}=nothing,
 )
     # Sanity checks
@@ -289,8 +294,9 @@ function sample_sortperm!(
     # Sort with custom comparator
     sample_sort!(
         ix;
-        max_tasks=max_tasks,
         lt=ilt, by=by, rev=rev, order=order,
+        max_tasks=max_tasks,
+        min_elems=min_elems,
         temp=temp,
     )
 end

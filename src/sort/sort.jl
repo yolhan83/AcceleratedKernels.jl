@@ -20,6 +20,7 @@ include("cpu_sample_sort.jl")
 
         # CPU settings
         max_tasks=Threads.nthreads(),
+        min_elems=1,
 
         # GPU settings
         block_size::Int=256,
@@ -27,6 +28,36 @@ include("cpu_sample_sort.jl")
         # Temporary buffer, same size as `v`
         temp::Union{Nothing, AbstractArray}=nothing,
     )
+
+Sorts the array `v` in-place using the specified backend. The `lt`, `by`, `rev`, and `order`
+arguments are the same as for `Base.sort`.
+    
+CPU settings: use at most `max_tasks` threads to sort the array such that at least `min_elems`
+elements are sorted by each thread. A parallel [`sample_sort!`](@ref) is used, processing
+independent slices of the array and deferring to `Base.sort!` for the final local sorts.
+
+GPU settings: use `block_size` threads per block to sort the array. A parallel [`merge_sort!`](@ref)
+is used.
+
+For both CPU and GPU backends, the `temp` argument can be used to reuse a temporary buffer of the
+same size as `v` to store the sorted output.
+
+# Examples
+Simple parallel CPU sort using all available threads (as given by `julia --threads N`):
+```julia
+import AcceleratedKernels as AK
+v = rand(1000)
+AK.sort!(v)
+```
+
+Parallel GPU sorting, passing a temporary buffer to avoid allocating a new one:
+```julia
+using oneAPI
+import AcceleratedKernels as AK
+v = oneArray(rand(1000))
+temp = similar(v)
+AK.sort!(v, temp=temp)
+```
 """
 function sort!(
     v::AbstractArray, backend::Backend=get_backend(v);
@@ -38,6 +69,7 @@ function sort!(
 
     # CPU settings
     max_tasks=Threads.nthreads(),
+    min_elems=1,
 
     # GPU settings
     block_size::Int=256,
@@ -49,6 +81,7 @@ function sort!(
         v, backend,
         lt=lt, by=by, rev=rev, order=order,
         max_tasks=max_tasks,
+        min_elems=min_elems,
         block_size=block_size,
         temp=temp,
     )
@@ -64,6 +97,7 @@ function _sort_impl!(
     order::Base.Order.Ordering=Base.Forward,
 
     max_tasks=Threads.nthreads(),
+    min_elems=1,
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
 )
@@ -79,6 +113,7 @@ function _sort_impl!(
             v;
             lt=lt, by=by, rev=rev, order=order,
             max_tasks=max_tasks,
+            min_elems=min_elems,
             temp=temp,
         )
     end
@@ -96,6 +131,7 @@ end
 
         # CPU settings
         max_tasks=Threads.nthreads(),
+        min_elems=1,
 
         # GPU settings
         block_size::Int=256,
@@ -103,6 +139,8 @@ end
         # Temporary buffer, same size as `v`
         temp::Union{Nothing, AbstractArray}=nothing,
     )
+
+Out-of-place sort, same settings as [`sort!`](@ref).
 """
 function sort(
     v::AbstractArray, backend::Backend=get_backend(v);
@@ -114,6 +152,7 @@ function sort(
 
     # CPU settings
     max_tasks=Threads.nthreads(),
+    min_elems=1,
 
     # GPU settings
     block_size::Int=256,
@@ -126,6 +165,7 @@ function sort(
         vcopy, backend,
         lt=lt, by=by, rev=rev, order=order,
         max_tasks=max_tasks,
+        min_elems=min_elems,
         block_size=block_size,
         temp=temp,
     )
@@ -145,6 +185,7 @@ end
 
         # CPU settings
         max_tasks=Threads.nthreads(),
+        min_elems=1,
 
         # GPU settings
         block_size::Int=256,
@@ -152,6 +193,10 @@ end
         # Temporary buffer, same size as `v`
         temp::Union{Nothing, AbstractArray}=nothing,
     )
+
+Save into `ix` the index permutation of `v` such that `v[ix]` is sorted. The `lt`, `by`, `rev`, and
+`order` arguments are the same as for `Base.sortperm`. The same algorithms are used as for
+[`sort!`](@ref) with custom by-index comparators.
 """
 function sortperm!(
     ix::AbstractArray,
@@ -165,6 +210,7 @@ function sortperm!(
 
     # CPU settings
     max_tasks=Threads.nthreads(),
+    min_elems=1,
 
     # GPU settings
     block_size::Int=256,
@@ -176,6 +222,7 @@ function sortperm!(
         ix, v, backend,
         lt=lt, by=by, rev=rev, order=order,
         max_tasks=max_tasks,
+        min_elems=min_elems,
         block_size=block_size,
         temp=temp,
     )
@@ -193,6 +240,7 @@ function _sortperm_impl!(
     order::Base.Order.Ordering=Base.Forward,
 
     max_tasks=Threads.nthreads(),
+    min_elems=1,
     block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
 )
@@ -207,6 +255,7 @@ function _sortperm_impl!(
             ix, v;
             lt=lt, by=by, rev=rev, order=order,
             max_tasks=max_tasks,
+            min_elems=min_elems,
             temp=temp,
         )
     end
@@ -225,6 +274,7 @@ end
 
         # CPU settings
         max_tasks=Threads.nthreads(),
+        min_elems=1,
 
         # GPU settings
         block_size::Int=256,
@@ -232,6 +282,8 @@ end
         # Temporary buffer, same size as `v`
         temp::Union{Nothing, AbstractArray}=nothing,
     )
+
+Out-of-place sortperm, same settings as [`sortperm!`](@ref).
 """
 function sortperm(
     v::AbstractArray,
@@ -244,6 +296,7 @@ function sortperm(
 
     # CPU settings
     max_tasks=Threads.nthreads(),
+    min_elems=1,
 
     # GPU settings
     block_size::Int=256,
@@ -256,6 +309,7 @@ function sortperm(
         ix, v, backend,
         lt=lt, by=by, rev=rev, order=order,
         max_tasks=max_tasks,
+        min_elems=min_elems,
         block_size=block_size,
         temp=temp,
     )

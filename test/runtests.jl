@@ -425,25 +425,25 @@ end
     # Testing different settings
     v = array_from_host(rand(1:100_000, 10_000), Float32)
     AK.sort!(v, lt=(>), by=abs, rev=true,
-             max_tasks=64, block_size=64,
+             max_tasks=64, min_elems=8, block_size=64,
              temp=array_from_host(1:10_000, Float32))
     @test issorted(Array(v))
 
     v = array_from_host(rand(1:100_000, 10_000), Int32)
     AK.sort!(v, lt=(>), rev=true,
-             max_tasks=64, block_size=64,
+             max_tasks=64, min_elems=8, block_size=64,
              temp=array_from_host(1:10_000, Int32))
     @test issorted(Array(v))
 
     v = array_from_host(rand(1:100_000, 10_000), Float32)
     v = AK.sort(v, lt=(>), by=abs, rev=true,
-                max_tasks=64, block_size=64,
+                max_tasks=64, min_elems=8, block_size=64,
                 temp=array_from_host(1:10_000, Float32))
     @test issorted(Array(v))
 
     v = array_from_host(rand(1:100_000, 10_000), Int32)
     v = AK.sort(v, lt=(>), by=abs, rev=true,
-                max_tasks=64, block_size=64,
+                max_tasks=64, min_elems=8, block_size=64,
                 temp=array_from_host(1:10_000, Int32))
     @test issorted(Array(v))
 end
