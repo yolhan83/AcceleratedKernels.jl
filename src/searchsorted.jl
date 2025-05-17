@@ -18,6 +18,24 @@ function _searchsortedfirst(v, x, lo::T, hi::T, comp) where T<:Integer
 end
 
 
+function _searchsortedfirst(v, x, lo::T, hi::T, ord::Base.Order.Ordering) where T<:Integer
+    hi = hi + T(1)
+    len = hi - lo
+    @inbounds while len != 0x0
+        half_len = len >>> 0x1
+        m = lo + half_len
+        if Base.Order.lt(ord, v[m], x)
+            lo = m + 0x1
+            len -= half_len + 0x1
+        else
+            hi = m
+            len = half_len
+        end
+    end
+    return lo
+end
+
+
 function _searchsortedlast(v, x, lo::T, hi::T, comp) where T<:Integer
     u = T(1)
     lo = lo - u
@@ -25,6 +43,22 @@ function _searchsortedlast(v, x, lo::T, hi::T, comp) where T<:Integer
     @inbounds while lo < hi - u
         m = lo + ((hi - lo) >>> 0x1)
         if comp(x, v[m])
+            hi = m
+        else
+            lo = m
+        end
+    end
+    return lo
+end
+
+
+function _searchsortedlast(v, x, lo::T, hi::T, ord::Base.Order.Ordering) where T<:Integer
+    u = T(1)
+    lo = lo - u
+    hi = hi + u
+    @inbounds while lo < hi - u
+        m = lo + ((hi - lo) >>> 0x1)
+        if Base.Order.lt(ord, x, v[m])
             hi = m
         else
             lo = m

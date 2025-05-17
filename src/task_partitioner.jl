@@ -212,7 +212,7 @@ function itask_partition(f, num_elems, max_tasks=Threads.nthreads(), min_elems=1
     min_elems > 0 || throw(ArgumentError("min_elems must be > 0"))
 
     if min(max_tasks, num_elems ÷ min_elems) <= 1
-        @inline f(1:num_elems)
+        @inline f(1, 1:num_elems)
     else
         # Compiler should decide if this should be inlined; threading adds quite a bit of code, it
         # is faster (as seen in Cthulhu) to keep it in a separate self-contained function
