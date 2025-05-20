@@ -18,7 +18,7 @@ function AK.accumulate!(
     alg::AK.AccumulateAlgorithm=AK.ScanPrefixes(),
 
     # GPU settings
-    block_size::Int=1024,
+    block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
     temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
@@ -43,7 +43,7 @@ function AK.accumulate!(
     alg::AK.AccumulateAlgorithm=AK.ScanPrefixes(),
 
     # GPU settings
-    block_size::Int=1024,
+    block_size::Int=256,
     temp::Union{Nothing, AbstractArray}=nothing,
     temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
