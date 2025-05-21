@@ -200,7 +200,6 @@ function searchsortedlast!(
     block_size::Int=256,
 )
     # Simple sanity checks
-    @argcheck block_size > 0
     @argcheck length(ix) == length(x)
 
     # Construct comparator
