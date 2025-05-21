@@ -84,4 +84,10 @@
     AK.searchsortedfirst(vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100)
     AK.searchsortedlast!(ixh, vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100)
     AK.searchsortedlast(vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.searchsortedfirst!(ixh, vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100, bad=:kwarg)
+    @test_throws MethodError AK.searchsortedfirst(vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100, bad=:kwarg)
+    @test_throws MethodError AK.searchsortedlast!(ixh, vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100, bad=:kwarg)
+    @test_throws MethodError AK.searchsortedlast(vh, xh, by=abs, lt=(>), rev=true, max_tasks=10, min_elems=100, bad=:kwarg)
 end

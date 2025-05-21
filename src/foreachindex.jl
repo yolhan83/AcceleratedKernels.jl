@@ -225,9 +225,8 @@ function foraxes(
     if isnothing(dims)
         return foreachindex(
             f, itr, backend;
-            max_tasks=max_tasks,
-            min_elems=min_elems,
-            block_size=block_size,
+            max_tasks, min_elems,
+            block_size,
         )
     end
 

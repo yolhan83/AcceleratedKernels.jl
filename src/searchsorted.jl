@@ -96,12 +96,10 @@ function searchsortedfirst!(
 
     by=identity, lt=isless, rev::Bool=false,
 
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
+    # CPU settings with different default from `foreachindex`
     min_elems::Int=1000,
 
-    # GPU settings
-    block_size::Int=256,
+    kwargs...
 )
     # Simple sanity checks
     @argcheck length(ix) == length(x)
@@ -111,9 +109,8 @@ function searchsortedfirst!(
     comp = (x, y) -> Base.Order.lt(ord, x, y)
 
     foreachindex(
-        x, backend,
-        max_tasks=max_tasks, min_elems=min_elems,
-        block_size=block_size,
+        x, backend;
+        min_elems, kwargs...
     ) do i
         @inbounds ix[i] = _searchsortedfirst(v, x[i], firstindex(v), lastindex(v), comp)
     end
@@ -143,22 +140,12 @@ function searchsortedfirst(
     v::AbstractVector,
     x::AbstractVector,
     backend::Backend=get_backend(x);
-
-    by=identity, lt=isless, rev::Bool=false,
-
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1000,
-
-    # GPU settings
-    block_size::Int=256,
+    kwargs...
 )
     ix = similar(x, Int)
     searchsortedfirst!(
         ix, v, x, backend;
-        by=by, lt=lt, rev=rev,
-        max_tasks=max_tasks, min_elems=min_elems,
-        block_size=block_size,
+        kwargs...
     )
     ix
 end
@@ -192,12 +179,10 @@ function searchsortedlast!(
 
     by=identity, lt=isless, rev::Bool=false,
 
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
+    # CPU settings with different default from `foreachindex`
     min_elems::Int=1000,
 
-    # GPU settings
-    block_size::Int=256,
+    kwargs...
 )
     # Simple sanity checks
     @argcheck length(ix) == length(x)
@@ -207,9 +192,8 @@ function searchsortedlast!(
     comp = (x, y) -> Base.Order.lt(ord, x, y)
 
     foreachindex(
-        x, backend,
-        max_tasks=max_tasks, min_elems=min_elems,
-        block_size=block_size,
+        x, backend;
+        min_elems, kwargs...
     ) do i
         @inbounds ix[i] = _searchsortedlast(v, x[i], firstindex(v), lastindex(v), comp)
     end
@@ -239,22 +223,12 @@ function searchsortedlast(
     v::AbstractVector,
     x::AbstractVector,
     backend::Backend=get_backend(x);
-
-    by=identity, lt=isless, rev::Bool=false,
-
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1000,
-
-    # GPU settings
-    block_size::Int=256,
+    kwargs...
 )
     ix = similar(x, Int)
     searchsortedlast!(
         ix, v, x, backend;
-        by=by, lt=lt, rev=rev,
-        max_tasks=max_tasks, min_elems=min_elems,
-        block_size=block_size,
+        kwargs...
     )
     ix
 end

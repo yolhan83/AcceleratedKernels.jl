@@ -1,16 +1,16 @@
 function mapreduce_1d(
     f, op, src::AbstractArray, backend::CPU;
     init,
-    neutral=neutral_element(op, eltype(src)),
+    neutral,
 
     # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1,
+    max_tasks::Int,
+    min_elems::Int,
 
     # GPU settings - ignored here
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    switch_below::Int=0,
+    block_size::Int,
+    temp::Union{Nothing, AbstractArray},
+    switch_below::Int,
 )
     if max_tasks == 1
         return op(init, Base.mapreduce(f, op, src; init=neutral))
