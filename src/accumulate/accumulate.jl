@@ -242,31 +242,15 @@ Out-of-place version of [`accumulate!`](@ref).
 function accumulate(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
-    neutral=neutral_element(op, eltype(v)),
-    dims::Union{Nothing, Int}=nothing,
-    inclusive::Bool=true,
-
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=2,
-
-    # Algorithm choice
-    alg::AccumulateAlgorithm=DecoupledLookback(),
-
-    # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    temp_flags::Union{Nothing, AbstractArray}=nothing,
+    kwargs...
 )
     dst_type = Base.promote_op(op, eltype(v), typeof(init))
     vcopy = similar(v, dst_type)
     copyto!(vcopy, v)
     accumulate!(
         op, vcopy, backend;
-        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
-        max_tasks=max_tasks, min_elems=min_elems,
-        alg=alg,
-        block_size=block_size, temp=temp, temp_flags=temp_flags,
+        init,
+        kwargs...
     )
     vcopy
 end
