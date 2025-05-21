@@ -124,28 +124,12 @@ AK.accumulate!(+, v, alg=AK.ScanPrefixes())
 function accumulate!(
     op, v::AbstractArray, backend::Backend=get_backend(v);
     init,
-    neutral=neutral_element(op, eltype(v)),
-    dims::Union{Nothing, Int}=nothing,
-    inclusive::Bool=true,
-
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=2,
-
-    # Algorithm choice
-    alg::AccumulateAlgorithm=DecoupledLookback(),
-
-    # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    temp_flags::Union{Nothing, AbstractArray}=nothing,
+    kwargs...
 )
     _accumulate_impl!(
-        op, v, backend,
-        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
-        max_tasks=max_tasks, min_elems=min_elems,
-        alg=alg,
-        block_size=block_size, temp=temp, temp_flags=temp_flags,
+        op, v, backend;
+        init,
+        kwargs...
     )
 end
 
@@ -153,29 +137,13 @@ end
 function accumulate!(
     op, dst::AbstractArray, src::AbstractArray, backend::Backend=get_backend(dst);
     init,
-    neutral=neutral_element(op, eltype(dst)),
-    dims::Union{Nothing, Int}=nothing,
-    inclusive::Bool=true,
-
-    # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=2,
-
-    # Algorithm choice
-    alg::AccumulateAlgorithm=DecoupledLookback(),
-
-    # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    temp_flags::Union{Nothing, AbstractArray}=nothing,
+    kwargs...
 )
     copyto!(dst, src)
     _accumulate_impl!(
-        op, dst, backend,
-        init=init, neutral=neutral, dims=dims, inclusive=inclusive,
-        max_tasks=max_tasks, min_elems=min_elems,
-        alg=alg,
-        block_size=block_size, temp=temp, temp_flags=temp_flags,
+        op, dst, backend;
+        init,
+        kwargs...
     )
 end
 
@@ -200,17 +168,17 @@ function _accumulate_impl!(
 )
     if isnothing(dims)
         return accumulate_1d!(
-            op, v, backend, alg,
-            init=init, neutral=neutral, inclusive=inclusive,
-            max_tasks=max_tasks, min_elems=min_elems,
-            block_size=block_size, temp=temp, temp_flags=temp_flags,
+            op, v, backend, alg;
+            init, neutral, inclusive,
+            max_tasks, min_elems,
+            block_size, temp, temp_flags,
         )
     else
         return accumulate_nd!(
-            op, v, backend,
-            init=init, neutral=neutral, dims=dims, inclusive=inclusive,
-            max_tasks=max_tasks, min_elems=min_elems,
-            block_size=block_size,
+            op, v, backend;
+            init, neutral, dims, inclusive,
+            max_tasks, min_elems,
+            block_size,
         )
     end
 end
