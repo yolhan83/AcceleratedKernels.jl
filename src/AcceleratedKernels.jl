@@ -12,7 +12,7 @@ module AcceleratedKernels
 
 # Internal dependencies
 using ArgCheck: @argcheck
-using GPUArraysCore: AbstractGPUVector, AbstractGPUArray, @allowscalar
+using GPUArraysCore: AbstractGPUArray, @allowscalar
 using KernelAbstractions
 
 

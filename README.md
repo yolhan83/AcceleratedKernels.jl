@@ -299,6 +299,11 @@ Leave out to test the CPU backend:
 $> julia -e 'import Pkg; Pkg.test("AcceleratedKernels.jl")'
 ```
 
+Start Julia with multiple threads to run the tests on a multithreaded CPU backend:
+```bash
+$> julia --threads=4 -e 'import Pkg; Pkg.test("AcceleratedKernels.jl")'
+```
+
 
 ## 8. Issues and Debugging
 As the compilation pipeline of GPU kernels is different to that of base Julia, error messages also look different - for example, where Julia would insert an exception when a variable name was not defined (e.g. we had a typo), a GPU kernel throwing exceptions cannot be compiled and instead you'll see some cascading errors like `"[...] compiling [...] resulted in invalid LLVM IR"` caused by `"Reason: unsupported use of an undefined name"` resulting in `"Reason: unsupported dynamic function invocation"`, etc.

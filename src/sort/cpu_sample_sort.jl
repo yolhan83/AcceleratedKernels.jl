@@ -14,7 +14,10 @@ end
 
 
 function _sample_sort_compute_offsets!(histograms, max_tasks)
+    # Not worth parallelising this, as the number of tasks is much smaller than the number of
+    # elements - in profiling this does not show up
     @inbounds begin
+
         # Sum up histograms and compute global offsets for each task
         offsets = @view histograms[1:max_tasks, max_tasks + 1]
         for itask in 1:max_tasks
@@ -40,7 +43,7 @@ end
 
 
 function _sample_sort_move_buckets!(
-    v, dest, ord,
+    v, temp, ord,
     splitters, global_offsets, task_offsets,
     itask, max_tasks, irange,
 )
@@ -58,7 +61,7 @@ function _sample_sort_move_buckets!(
             ibucket = 1 + _searchsortedlast(splitters, v[i], 1, length(splitters), ord)
 
             # Get the current destination index for this element, then increment
-            dest[offsets[ibucket]] = v[i]
+            temp[offsets[ibucket]] = v[i]
             offsets[ibucket] += 1
         end
     end
@@ -68,29 +71,29 @@ end
 
 
 function _sample_sort_sort_bucket!(
-    v, dest, offsets, itask, max_tasks;
+    v, temp, offsets, itask, max_tasks;
     lt, by, rev, order    
 )
     @inbounds begin
         istart = offsets[itask] + 1
-        istop = itask == max_tasks ? length(dest) : offsets[itask + 1]
+        istop = itask == max_tasks ? length(temp) : offsets[itask + 1]
 
         if istart == istop
-            v[istart] = dest[istart]
+            v[istart] = temp[istart]
             return
         elseif istart > istop
             return
         end
 
-        # At the end we will have to move elements from dest back to v anyways; for every
+        # At the end we will have to move elements from temp back to v anyways; for every
         # odd-numbered itask, move elements first, to avoid false sharing from threads
         if isodd(itask)
-            copyto!(v, istart, dest, istart, istop - istart + 1)
+            copyto!(v, istart, temp, istart, istop - istart + 1)
             Base.sort!(view(v, istart:istop), lt=lt, by=by, rev=rev, order=order)
         else
             # For even-numbered itasks, sort first, then move elements back to v
-            Base.sort!(view(dest, istart:istop), lt=lt, by=by, rev=rev, order=order)
-            copyto!(v, istart, dest, istart, istop - istart + 1)
+            Base.sort!(view(temp, istart:istop), lt=lt, by=by, rev=rev, order=order)
+            copyto!(v, istart, temp, istart, istop - istart + 1)
         end
     end
 
@@ -99,7 +102,7 @@ end
 
 
 function _sample_sort_parallel!(
-    v, dest, ord,
+    v, temp, ord,
     splitters, histograms,
     max_tasks;
     lt, by, rev, order,
@@ -121,7 +124,7 @@ function _sample_sort_parallel!(
     # Move the elements into the destination buffer
     itask_partition(tp) do itask, irange
         _sample_sort_move_buckets!(
-            v, dest, ord,
+            v, temp, ord,
             splitters, offsets, histograms,
             itask, max_tasks, irange,
         )
@@ -130,7 +133,7 @@ function _sample_sort_parallel!(
     # Sort each bucket in parallel
     itask_partition(tp) do itask, irange
         _sample_sort_sort_bucket!(
-            v, dest, offsets, itask, max_tasks;
+            v, temp, offsets, itask, max_tasks;
             lt=lt, by=by, rev=rev, order=order,
         )
     end
@@ -150,14 +153,14 @@ function _sample_sort_parallel!(
     # for itask in 1:max_tasks
     #     irange = tp[itask]
     #     _sample_sort_move_buckets!(
-    #         v, dest, ord,
+    #         v, temp, ord,
     #         splitters, offsets, histograms,
     #         itask, max_tasks, irange,
     #     )
     # end
     # for itask in 1:max_tasks
     #     _sample_sort_sort_bucket!(
-    #         v, dest, offsets, itask, max_tasks;
+    #         v, temp, offsets, itask, max_tasks;
     #         lt=lt, by=by, rev=rev, order=order,
     #     )
     # end
@@ -285,17 +288,31 @@ function sample_sortperm!(
     @argcheck length(ix) == length(v)
 
     # Initialise indices that will be sorted by the keys in v
-    foreachindex(ix, max_tasks=max_tasks) do i
+    foreachindex(ix, max_tasks=max_tasks, min_elems=min_elems) do i
         @inbounds ix[i] = i
     end
 
-    # Construct custom comparator indexing into global array v for every index comparison
-    ilt = (ix, iy) -> lt(v[ix], v[iy])
+    # The Order may have a type instability for `rev=true`, so we keep this function barrier
+    ord = Base.Order.ord(lt, by, rev, order)
+    _sample_sort_barrier!(
+        ix, v, ord;
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        temp=temp,
+    )
+end
 
-    # Sort with custom comparator
+
+function _sample_sort_barrier!(ix, v, ord; max_tasks, min_elems, temp)
+    # Construct custom comparator indexing into global array v for every index comparison
+    comp = (ix, iy) -> Base.Order.lt(ord, v[ix], v[iy])
     sample_sort!(
         ix;
-        lt=ilt, by=by, rev=rev, order=order,
+        lt=comp,
+
+        # Leave defaults - we already have a custom comparator
+        # by=identity, rev=nothing, order=Base.Order.Forward,
+
         max_tasks=max_tasks,
         min_elems=min_elems,
         temp=temp,
