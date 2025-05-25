@@ -12,10 +12,8 @@ module AcceleratedKernels
 
 # Internal dependencies
 using ArgCheck: @argcheck
-using GPUArraysCore: AbstractGPUVector, AbstractGPUArray, @allowscalar
+using GPUArraysCore: AbstractGPUArray, @allowscalar
 using KernelAbstractions
-using Polyester: @batch
-import OhMyThreads as OMT
 
 
 # Exposed functions from upstream packages

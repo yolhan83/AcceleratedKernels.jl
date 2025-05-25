@@ -190,6 +190,44 @@ Julia v1.11
 ## 1. What's Different?
 As far as I am aware, this is the first cross-architecture parallel standard library *from a unified codebase* - that is, the code is written as [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) backend-agnostic kernels, which are then **transpiled** to a GPU backend; that means we benefit from all the optimisations available on the native platform and official compiler stacks. For example, unlike open standards like OpenCL that require GPU vendors to implement that API for their hardware, we target the existing official compilers. And while performance-portability libraries like [Kokkos](https://github.com/kokkos/kokkos) and [RAJA](https://github.com/LLNL/RAJA) are powerful for large C++ codebases, they require US National Lab-level development and maintenance efforts to effectively forward calls from a single API to other OpenMP, CUDA Thrust, ROCm rocThrust, oneAPI DPC++ libraries developed separately.
 
+As a simple example, this is how a normal Julia `for`-loop can be converted to an accelerated kernel - for both multithreaded CPUs and Nvidia / AMD / Intel / Apple GPUs, **with native performance** - by changing a single line:
+
+<table>
+<tr>
+<td> CPU Code </td> <td> Multithreaded / GPU code </td>
+<tr>
+
+<tr>
+<td>
+
+```julia
+# Copy kernel testing throughput
+
+function cpu_copy!(dst, src)
+    for i in eachindex(src)
+        dst[i] = src[i]
+    end
+end
+```
+
+</td>
+<td>
+
+```julia
+import AcceleratedKernels as AK
+
+function ak_copy!(dst, src)
+    AK.foreachindex(src) do i
+        dst[i] = src[i]
+    end
+end
+```
+
+</td>
+</tr>
+</table>
+
+
 Again, this is only possible because of the unique Julia compilation model, the [JuliaGPU](https://juliagpu.org/) organisation work for reusable GPU backend infrastructure, and especially the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) backend-agnostic kernel language. Thank you.
 
 
@@ -299,6 +337,11 @@ Leave out to test the CPU backend:
 $> julia -e 'import Pkg; Pkg.test("AcceleratedKernels.jl")'
 ```
 
+Start Julia with multiple threads to run the tests on a multithreaded CPU backend:
+```bash
+$> julia --threads=4 -e 'import Pkg; Pkg.test("AcceleratedKernels.jl")'
+```
+
 
 ## 8. Issues and Debugging
 As the compilation pipeline of GPU kernels is different to that of base Julia, error messages also look different - for example, where Julia would insert an exception when a variable name was not defined (e.g. we had a typo), a GPU kernel throwing exceptions cannot be compiled and instead you'll see some cascading errors like `"[...] compiling [...] resulted in invalid LLVM IR"` caused by `"Reason: unsupported use of an undefined name"` resulting in `"Reason: unsupported dynamic function invocation"`, etc.
@@ -322,7 +365,6 @@ Help is very welcome for any of the below:
       switch_below=(1, 10, 100, 1000, 10000)
   end
   ```
-- We need multithreaded implementations of `sort`, N-dimensional `mapreduce` (in `OhMyThreads.tmapreduce`) and `accumulate` (again, probably in `OhMyThreads`).
 - Any way to expose the warp-size from the backends? Would be useful in reductions.
 - Add a performance regressions runner.
 - **Other ideas?** Post an issue, or open a discussion on the Julia Discourse.
