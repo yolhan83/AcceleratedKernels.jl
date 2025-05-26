@@ -252,16 +252,16 @@ function accumulate_1d!(
     op, v::AbstractArray, backend::GPU, ::DecoupledLookback;
     init,
     neutral,
-    inclusive::Bool=true,
+    inclusive::Bool,
 
     # CPU settings - not used
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1,
+    max_tasks::Int,
+    min_elems::Int,
 
     # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    temp_flags::Union{Nothing, AbstractArray}=nothing,
+    block_size::Int,
+    temp::Union{Nothing, AbstractArray},
+    temp_flags::Union{Nothing, AbstractArray},
 )
     # Correctness checks
     @argcheck block_size > 0
@@ -311,16 +311,16 @@ function accumulate_1d!(
     op, v::AbstractArray, backend::GPU, ::ScanPrefixes;
     init,
     neutral,
-    inclusive::Bool=true,
+    inclusive::Bool,
 
     # CPU settings - not used
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1,
+    max_tasks::Int,
+    min_elems::Int,
 
     # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    temp_flags::Union{Nothing, AbstractArray}=nothing,
+    block_size::Int,
+    temp::Union{Nothing, AbstractArray},
+    temp_flags::Union{Nothing, AbstractArray},
 )
     # Correctness checks
     @argcheck block_size > 0

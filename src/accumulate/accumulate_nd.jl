@@ -1,16 +1,16 @@
 function accumulate_nd!(
     op, v::AbstractArray, backend::Backend;
     init,
-    neutral=neutral_element(op, eltype(v)),
+    neutral,
     dims::Int,
-    inclusive::Bool=true,
+    inclusive::Bool,
 
     # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1,
+    max_tasks::Int,
+    min_elems::Int,
 
     # GPU settings
-    block_size::Int=256,
+    block_size::Int,
 )
     # Correctness checks
     @argcheck block_size > 0
