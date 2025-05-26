@@ -71,19 +71,6 @@ function reduce(
     init,
     kwargs...
 )
-    _reduce_impl(
-        op, src, backend;
-        init,
-        kwargs...
-    )
-end
-
-
-function _reduce_impl(
-    op, src::AbstractArray, backend;
-    init,
-    kwargs...
-)
     _mapreduce_impl(
         identity, op, src, backend;
         init,
