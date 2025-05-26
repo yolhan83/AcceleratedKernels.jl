@@ -2,16 +2,16 @@ function accumulate_1d!(
     op, v::AbstractArray, backend::CPU, alg;
     init,
     neutral,
-    inclusive::Bool=true,
+    inclusive::Bool,
 
     # CPU settings
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=2,
+    max_tasks::Int,
+    min_elems::Int,
 
     # GPU settings - not used
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
-    temp_flags::Union{Nothing, AbstractArray}=nothing,
+    block_size::Int,
+    temp::Union{Nothing, AbstractArray},
+    temp_flags::Union{Nothing, AbstractArray},
 )
     # Trivial case
     if length(v) == 0

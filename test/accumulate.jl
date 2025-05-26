@@ -81,6 +81,9 @@
     AK.accumulate!(+, y; init=Int32(init), inclusive=false)
     @test all(Array(y) .== 10:19)
 
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.accumulate(+, y; init=10, dims=2, inclusive=false, bad=:kwarg)
+
     # Testing different settings
     AK.accumulate!(+, array_from_host(ones(Int32, 1000)), init=0, inclusive=false,
                 block_size=128,
@@ -185,6 +188,9 @@ end
     s = AK.accumulate(+, v; init=10, dims=2, inclusive=false)
     sh = Array(s)
     @test all([sh[i, :] == 10:19 for i in 1:10])
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.accumulate(+, v; init=10, dims=2, inclusive=false, bad=:kwarg)
 
     # Testing different settings
     AK.accumulate(
