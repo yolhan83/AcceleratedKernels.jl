@@ -13,6 +13,11 @@
 Apply the function `f` to each element of `src` in parallel and store the result in `dst`. The
 CPU and GPU settings are the same as for [`foreachindex`](@ref).
 
+On CPUs, multithreading only improves performance when complex computation hides the memory
+latency and the overhead of spawning tasks - that includes more complex functions and less
+cache-local array access patterns. For compute-bound tasks, it scales linearly with the number of
+threads.
+
 # Examples
 ```julia
 import Metal

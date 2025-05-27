@@ -32,10 +32,18 @@ include("cpu_sample_sort.jl")
 Sorts the array `v` in-place using the specified backend. The `lt`, `by`, `rev`, and `order`
 arguments are the same as for `Base.sort`.
 
+## CPU
 CPU settings: use at most `max_tasks` threads to sort the array such that at least `min_elems`
 elements are sorted by each thread. A parallel [`sample_sort!`](@ref) is used, processing
 independent slices of the array and deferring to `Base.sort!` for the final local sorts.
 
+Note that the Base Julia `sort!` is mainly memory-bound, so multithreaded sorting only becomes
+faster if it is a more compute-heavy operation to hide memory latency - that includes:
+- Sorting more complex types, e.g. lexicographic sorting of tuples / structs / strings.
+- More complex comparators, e.g. `by=custom_complex_function` or `lt=custom_lt_function`.
+- Less cache-predictable data movement, e.g. `sortperm`.
+
+## GPU
 GPU settings: use `block_size` threads per block to sort the array. A parallel [`merge_sort!`](@ref)
 is used.
 

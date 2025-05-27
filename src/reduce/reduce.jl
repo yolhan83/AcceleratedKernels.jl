@@ -33,6 +33,13 @@ Use at most `max_tasks` threads with at least `min_elems` elements per task. For
 arrays (`dims::Int`) multithreading currently only becomes faster for `max_tasks >= 4`; all other
 cases are scaling linearly with the number of threads.
 
+Note that multithreading reductions only improves performance for cases with more compute-heavy
+operations, which hide the memory latency and thread launch overhead - that includes:
+- Reducing more complex types, e.g. reduction of tuples / structs / strings.
+- More complex operators, e.g. `op=custom_complex_op_function`.
+
+For non-memory-bound operations, reductions scale almost linearly with the number of threads.
+
 ## GPU settings
 The `block_size` parameter controls the number of threads per block.
 

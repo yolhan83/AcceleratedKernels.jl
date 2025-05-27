@@ -82,6 +82,11 @@ recommend using the single-array interface (the first one above).
 ## CPU
 Use at most `max_tasks` threads with at least `min_elems` elements per task.
 
+Note that accumulation is typically a memory-bound operation, so multithreaded accumulation only
+becomes faster if it is a more compute-heavy operation to hide memory latency - that includes:
+- Accumulating more complex types, e.g. accumulation of tuples / structs / strings.
+- More complex operators, e.g. `op=custom_complex_function`.
+
 ## GPU
 For the 1D case (`dims=nothing`), the `alg` can be one of the following:
 - `DecoupledLookback()`: the default algorithm, using opportunistic lookback to reuse earlier
