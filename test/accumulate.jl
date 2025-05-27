@@ -65,7 +65,7 @@
         y = similar(x)
         init = rand(-1000:1000)
         AK.accumulate!(+, y, x; init=Int32(init))
-        @test all(Array(y) .== accumulate(+, Array(x), init=init))
+        @test all(Array(y) .== accumulate(+, Array(x); init))
     end
 
     # Exclusive scan
@@ -106,10 +106,10 @@ end
                 for ksize in 0:3
                     sh = rand(Int32(1):Int32(100), isize, jsize, ksize)
                     s = array_from_host(sh)
-                    d = AK.accumulate(+, s; init=Int32(0), dims=dims)
+                    d = AK.accumulate(+, s; init=Int32(0), dims)
 
                     dh = Array(d)
-                    dhres = accumulate(+, sh, init=Int32(0), dims=dims)
+                    dhres = accumulate(+, sh; init=Int32(0), dims)
                     @test dh == dhres
                     @test eltype(dh) == eltype(dhres)
                 end
@@ -126,9 +126,9 @@ end
             vh = rand(Int32(1):Int32(100), n1, n2, n3)
             v = array_from_host(vh)
 
-            s = AK.accumulate(+, v; init=Int32(0), dims=dims)
+            s = AK.accumulate(+, v; init=Int32(0), dims)
             sh = Array(s)
-            @test sh == accumulate(+, vh, init=Int32(0), dims=dims)
+            @test sh == accumulate(+, vh; init=Int32(0), dims)
         end
     end
 
@@ -140,9 +140,9 @@ end
             vh = rand(UInt32(1):UInt32(100), n1, n2, n3)
             v = array_from_host(vh)
 
-            s = AK.accumulate(+, v; init=UInt32(0), dims=dims)
+            s = AK.accumulate(+, v; init=UInt32(0), dims)
             sh = Array(s)
-            @test sh == accumulate(+, vh, init=UInt32(0), dims=dims)
+            @test sh == accumulate(+, vh; init=UInt32(0), dims)
         end
     end
 
@@ -154,9 +154,9 @@ end
             vh = rand(Float32, n1, n2, n3)
             v = array_from_host(vh)
 
-            s = AK.accumulate(+, v; init=Float32(0), dims=dims)
+            s = AK.accumulate(+, v; init=Float32(0), dims)
             sh = Array(s)
-            @test all(sh .≈ accumulate(+, vh, init=Float32(0), dims=dims))
+            @test all(sh .≈ accumulate(+, vh; init=Float32(0), dims))
         end
     end
 
@@ -169,9 +169,9 @@ end
             vh = rand(Float32, n1, n2, n3)
             v = array_from_host(vh)
             init = rand(-1000:1000)
-            s = AK.accumulate(+, v; init=Float32(init), dims=dims)
+            s = AK.accumulate(+, v; init=Float32(init), dims)
             sh = Array(s)
-            @test all(sh .≈ accumulate(+, vh, init=Float32(init), dims=dims))
+            @test all(sh .≈ accumulate(+, vh; init=Float32(init), dims))
         end
     end
 
@@ -241,8 +241,8 @@ end
             # @test all(Array(AK.cumsum(v)) .== cumsum(vh))
 
             # Along dimensions
-            r = Array(AK.cumsum(v, dims=dims))
-            rh = cumsum(vh, dims=dims)
+            r = Array(AK.cumsum(v; dims))
+            rh = cumsum(vh; dims)
 
             @test r == rh
         end
@@ -256,6 +256,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.cumsum(v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.cumsum(v; init=10, bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end
@@ -287,8 +290,8 @@ end
             # @test all(Array(AK.cumprod(v)) .== cumprod(vh))
 
             # Along dimensions
-            r = Array(AK.cumprod(v, dims=dims))
-            rh = cumprod(vh, dims=dims)
+            r = Array(AK.cumprod(v; dims))
+            rh = cumprod(vh; dims)
 
             @test r == rh
         end
@@ -297,6 +300,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.cumprod(v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.cumprod(v; init=10, bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end

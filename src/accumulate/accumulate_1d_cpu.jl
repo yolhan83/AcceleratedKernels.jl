@@ -36,8 +36,7 @@ function accumulate_1d!(
             if itask == 1
                 _accumulate_1d_cpu_section!(
                     op, @view(v[irange]);
-                    init=init,
-                    inclusive=inclusive,
+                    init, inclusive,
                 )
             else
                 # Later sections should always be inclusively accumulated

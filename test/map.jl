@@ -28,6 +28,8 @@
         end
         @test y == map(i -> i > 0.5 ? i : 0, x)
 
+        # Test that undefined kwargs are not accepted
+        @test_throws MethodError AK.map(x -> x^2, x; bad=:kwarg)
     # GPU
     else
         x = array_from_host(1:1000)
@@ -48,5 +50,8 @@
             i > 0.5 ? i : 0
         end
         @test Array(y) == map(i -> i > 0.5 ? i : 0, Array(x))
+
+        # Test that undefined kwargs are not accepted
+        @test_throws MethodError AK.map(x -> x^2, x; bad=:kwarg)
     end
 end

@@ -34,10 +34,10 @@
         num_elems = rand(1:100_000)
         v = array_from_host(rand(Float32, num_elems))
         alg=AK.MapReduce(temp=similar(v, Bool), switch_below=100)
-        @test AK.any(x->x<0, v, alg=alg) === false
-        @test AK.any(x->x<1, v, alg=alg) === true
-        @test AK.all(x->x<1, v, alg=alg) === true
-        @test AK.all(x->x<0, v, alg=alg) === false
+        @test AK.any(x->x<0, v; alg) === false
+        @test AK.any(x->x<1, v; alg) === true
+        @test AK.all(x->x<1, v; alg) === true
+        @test AK.all(x->x<0, v; alg) === false
     end
 
     # Testing different settings

@@ -5,12 +5,12 @@ function mapreduce_nd(
     dims::Int,
 
     # CPU settings - ignored here
-    max_tasks::Int=Threads.nthreads(),
-    min_elems::Int=1,
+    max_tasks::Int,
+    min_elems::Int,
 
     # GPU settings
-    block_size::Int=256,
-    temp::Union{Nothing, AbstractArray}=nothing,
+    block_size::Int,
+    temp::Union{Nothing, AbstractArray},
 )
     @argcheck 1 <= block_size <= 1024
 

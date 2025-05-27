@@ -72,7 +72,7 @@ end
 
 function _sample_sort_sort_bucket!(
     v, temp, offsets, itask, max_tasks;
-    lt, by, rev, order    
+    lt, by, rev, order
 )
     @inbounds begin
         istart = offsets[itask] + 1
@@ -89,10 +89,10 @@ function _sample_sort_sort_bucket!(
         # odd-numbered itask, move elements first, to avoid false sharing from threads
         if isodd(itask)
             copyto!(v, istart, temp, istart, istop - istart + 1)
-            Base.sort!(view(v, istart:istop), lt=lt, by=by, rev=rev, order=order)
+            Base.sort!(view(v, istart:istop); lt, by, rev, order)
         else
             # For even-numbered itasks, sort first, then move elements back to v
-            Base.sort!(view(temp, istart:istop), lt=lt, by=by, rev=rev, order=order)
+            Base.sort!(view(temp, istart:istop); lt, by, rev, order)
             copyto!(v, istart, temp, istart, istop - istart + 1)
         end
     end
@@ -134,7 +134,7 @@ function _sample_sort_parallel!(
     itask_partition(tp) do itask, irange
         _sample_sort_sort_bucket!(
             v, temp, offsets, itask, max_tasks;
-            lt=lt, by=by, rev=rev, order=order,
+            lt, by, rev, order,
         )
     end
 
@@ -161,7 +161,7 @@ function _sample_sort_parallel!(
     # for itask in 1:max_tasks
     #     _sample_sort_sort_bucket!(
     #         v, temp, offsets, itask, max_tasks;
-    #         lt=lt, by=by, rev=rev, order=order,
+    #         lt, by, rev, order,
     #     )
     # end
 
@@ -211,7 +211,7 @@ function sample_sort!(
     end
     max_tasks = min(max_tasks, num_elements ÷ min_elems)
     if max_tasks <= 1 || num_elements < oversampling_factor * max_tasks
-        return Base.sort!(v, lt=lt, by=by, rev=rev, order=order)
+        return Base.sort!(v; lt, by, rev, order)
     end
 
     # Create a temporary buffer for the sorted output
@@ -231,7 +231,7 @@ function sample_sort!(
     end
 
     # Sort samples and choose splitters; these are small allocations, which Julia is fast at
-    Base.sort!(view(dest, 1:num_samples), lt=lt, by=by, rev=rev, order=order)
+    Base.sort!(view(dest, 1:num_samples); lt, by, rev, order)
     splitters = Vector{eltype(v)}(undef, max_tasks - 1)
     for i in 1:(max_tasks - 1)
         splitters[i] = dest[div(i * num_samples, max_tasks)]
@@ -248,7 +248,7 @@ function sample_sort!(
         v, dest, ord,
         splitters, histograms,
         max_tasks;
-        lt=lt, by=by, rev=rev, order=order,
+        lt, by, rev, order,
     )
 
     v
@@ -288,7 +288,7 @@ function sample_sortperm!(
     @argcheck length(ix) == length(v)
 
     # Initialise indices that will be sorted by the keys in v
-    foreachindex(ix, max_tasks=max_tasks, min_elems=min_elems) do i
+    foreachindex(ix; max_tasks, min_elems) do i
         @inbounds ix[i] = i
     end
 
@@ -296,9 +296,8 @@ function sample_sortperm!(
     ord = Base.Order.ord(lt, by, rev, order)
     _sample_sort_barrier!(
         ix, v, ord;
-        max_tasks=max_tasks,
-        min_elems=min_elems,
-        temp=temp,
+        max_tasks, min_elems,
+        temp,
     )
 end
 
@@ -313,8 +312,6 @@ function _sample_sort_barrier!(ix, v, ord; max_tasks, min_elems, temp)
         # Leave defaults - we already have a custom comparator
         # by=identity, rev=nothing, order=Base.Order.Forward,
 
-        max_tasks=max_tasks,
-        min_elems=min_elems,
-        temp=temp,
+        max_tasks, min_elems, temp,
     )
 end

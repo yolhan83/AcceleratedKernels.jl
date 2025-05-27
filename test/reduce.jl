@@ -106,7 +106,7 @@ Base.zero(::Type{Point}) = Point(0.0f0, 0.0f0)
         init = rand(1:100)
         s = AK.reduce(+, v; switch_below=switch_below, init=Int32(init))
         vh = Array(v)
-        @test s == reduce(+, vh, init=init)
+        @test s == reduce(+, vh; init)
     end
 
     # Test with unmaterialised ranges
@@ -117,6 +117,9 @@ Base.zero(::Type{Point}) = Point(0.0f0, 0.0f0)
         vh = Array(v)
         @test s == reduce(+, vh)
     end
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.reduce(+, array_from_host(rand(Int32, 10)); init=10, bad=:kwarg)
 
     # Testing different settings
     AK.reduce(
@@ -151,10 +154,10 @@ end
                 for ksize in 0:3
                     sh = rand(Int32(1):Int32(100), isize, jsize, ksize)
                     s = array_from_host(sh)
-                    d = AK.reduce(+, s; init=Int32(10), dims=dims)
+                    d = AK.reduce(+, s; init=Int32(10), dims)
                     dh = Array(d)
-                    @test dh == sum(sh, init=Int32(10), dims=dims)
-                    @test eltype(dh) == eltype(sum(sh, init=Int32(10), dims=dims))
+                    @test dh == sum(sh; init=Int32(10), dims)
+                    @test eltype(dh) == eltype(sum(sh; init=Int32(10), dims))
                 end
             end
         end
@@ -168,9 +171,9 @@ end
             n3 = rand(1:100)
             vh = rand(Int32(1):Int32(100), n1, n2, n3)
             v = array_from_host(vh)
-            s = AK.reduce(+, v; init=Int32(0), dims=dims)
+            s = AK.reduce(+, v; init=Int32(0), dims)
             sh = Array(s)
-            @test sh == sum(vh, dims=dims)
+            @test sh == sum(vh; dims)
         end
     end
 
@@ -181,9 +184,9 @@ end
             n3 = rand(1:100)
             vh = rand(UInt32(1):UInt32(100), n1, n2, n3)
             v = array_from_host(vh)
-            s = AK.reduce(+, v; init=UInt32(0), dims=dims)
+            s = AK.reduce(+, v; init=UInt32(0), dims)
             sh = Array(s)
-            @test sh == sum(vh, dims=dims)
+            @test sh == sum(vh; dims)
         end
     end
 
@@ -194,9 +197,9 @@ end
             n3 = rand(1:100)
             vh = rand(Float32, n1, n2, n3)
             v = array_from_host(vh)
-            s = AK.reduce(+, v; init=Float32(0), dims=dims)
+            s = AK.reduce(+, v; init=Float32(0), dims)
             sh = Array(s)
-            @test sh ≈ sum(vh, dims=dims)
+            @test sh ≈ sum(vh; dims)
         end
     end
 
@@ -209,11 +212,14 @@ end
             vh = rand(Int32(1):Int32(100), n1, n2, n3)
             v = array_from_host(vh)
             init = rand(1:100)
-            s = AK.reduce(+, v; init=Int32(init), dims=dims)
+            s = AK.reduce(+, v; init=Int32(init), dims)
             sh = Array(s)
-            @test sh == reduce(+, vh, dims=dims, init=init)
+            @test sh == reduce(+, vh; dims, init)
         end
     end
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.reduce(+, array_from_host(rand(Int32, 10, 10)); init=10, bad=:kwarg)
 
     # Testing different settings
     AK.reduce(
@@ -317,7 +323,7 @@ end
         init = rand(1:100)
         s = AK.mapreduce(abs, +, v; switch_below=switch_below, init=Int32(init))
         vh = Array(v)
-        @test s == mapreduce(abs, +, vh, init=init)
+        @test s == mapreduce(abs, +, vh; init)
     end
 
     # Test with unmaterialised ranges
@@ -345,6 +351,9 @@ end
     v = array_from_host([Point(rand(Float32), rand(Float32)) for _ in 1:10_042])
     temp = similar(v, Tuple{Float32, Float32})
     f(v, temp)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.mapreduce(-, +, v; init=10, bad=:kwarg)
 end
 
 
@@ -358,10 +367,10 @@ end
                 for ksize in 0:3
                     sh = rand(Int32(-100):Int32(100), isize, jsize, ksize)
                     s = array_from_host(sh)
-                    d = AK.mapreduce(-, +, s; init=Int32(-10), dims=dims)
+                    d = AK.mapreduce(-, +, s; init=Int32(-10), dims)
                     dh = Array(d)
-                    @test dh == mapreduce(-, +, sh, init=Int32(-10), dims=dims)
-                    @test eltype(dh) == eltype(mapreduce(-, +, sh, init=Int32(-10), dims=dims))
+                    @test dh == mapreduce(-, +, sh; init=Int32(-10), dims)
+                    @test eltype(dh) == eltype(mapreduce(-, +, sh; init=Int32(-10), dims))
                 end
             end
         end
@@ -375,9 +384,9 @@ end
             n3 = rand(1:100)
             vh = rand(Int32(1):Int32(100), n1, n2, n3)
             v = array_from_host(vh)
-            s = AK.mapreduce(-, +, v; init=Int32(0), dims=dims)
+            s = AK.mapreduce(-, +, v; init=Int32(0), dims)
             sh = Array(s)
-            @test sh == mapreduce(-, +, vh, init=Int32(0), dims=dims)
+            @test sh == mapreduce(-, +, vh; init=Int32(0), dims)
         end
     end
 
@@ -389,7 +398,7 @@ end
             s;
             init=(typemax(Float32), typemax(Float32)),
             neutral=(typemax(Float32), typemax(Float32)),
-            dims=dims,
+            dims,
         )
     end
 
@@ -400,7 +409,7 @@ end
             (a, b) -> (a[1] < b[1] ? a[1] : b[1], a[2] < b[2] ? a[2] : b[2]),
             s;
             init=(typemax(Float32), typemax(Float32)),
-            dims=dims,
+            dims,
         )
     end
 
@@ -434,11 +443,14 @@ end
             vh = rand(Int32(-100):Int32(100), n1, n2, n3)
             v = array_from_host(vh)
             init = rand(1:100)
-            s = AK.mapreduce(-, +, v; init=Int32(init), dims=dims)
+            s = AK.mapreduce(-, +, v; init=Int32(init), dims)
             sh = Array(s)
-            @test sh == mapreduce(-, +, vh, dims=dims, init=init)
+            @test sh == mapreduce(-, +, vh; dims, init)
         end
     end
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.mapreduce(-, +, array_from_host(rand(Int32, 3, 4, 5)); init=10, bad=:kwarg)
 
     # Testing different settings
     AK.mapreduce(
@@ -495,8 +507,8 @@ end
             @test AK.sum(v) == sum(vh)
 
             # Along dimensions
-            r = Array(AK.sum(v, dims=dims))
-            rh = sum(vh, dims=dims)
+            r = Array(AK.sum(v; dims))
+            rh = sum(vh; dims)
 
             @test r == rh
         end
@@ -505,6 +517,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.sum(v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.sum(v; bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end
@@ -537,8 +552,8 @@ end
             @test AK.sum(v) == sum(vh)
 
             # Along dimensions
-            r = Array(AK.sum(v, dims=dims))
-            rh = sum(vh, dims=dims)
+            r = Array(AK.sum(v; dims))
+            rh = sum(vh; dims)
 
             @test r == rh
         end
@@ -547,6 +562,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.prod(v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.prod(v; bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end
@@ -579,8 +597,8 @@ end
             @test AK.minimum(v) == minimum(vh)
 
             # Along dimensions
-            r = Array(AK.minimum(v, dims=dims))
-            rh = minimum(vh, dims=dims)
+            r = Array(AK.minimum(v; dims))
+            rh = minimum(vh; dims)
 
             @test r == rh
         end
@@ -589,6 +607,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.minimum(v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.minimum(v; bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end
@@ -621,8 +642,8 @@ end
             @test AK.maximum(v) == maximum(vh)
 
             # Along dimensions
-            r = Array(AK.maximum(v, dims=dims))
-            rh = maximum(vh, dims=dims)
+            r = Array(AK.maximum(v; dims))
+            rh = maximum(vh; dims)
 
             @test r == rh
         end
@@ -631,6 +652,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.maximum(v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.maximum(v; bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end
@@ -663,8 +687,8 @@ end
             @test AK.count(x->x>0.5, v) == count(x->x>0.5, vh)
 
             # Along dimensions
-            r = Array(AK.count(x->x>0.5, v, dims=dims))
-            rh = count(x->x>0.5, vh, dims=dims)
+            r = Array(AK.count(x->x>0.5, v; dims))
+            rh = count(x->x>0.5, vh; dims)
 
             @test r == rh
         end
@@ -680,6 +704,9 @@ end
     # Testing different settings
     v = array_from_host(rand(-5:5, 100_000))
     AK.count(x->x>0, v, block_size=64)
+
+    # Test that undefined kwargs are not accepted
+    @test_throws MethodError AK.count(v; bad=:kwarg)
 
     # The other settings are stress-tested in reduce
 end
