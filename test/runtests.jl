@@ -46,9 +46,12 @@ elseif !@isdefined(BACKEND)
     # Otherwise do CPU tests
     using InteractiveUtils
     InteractiveUtils.versioninfo()
-    const BACKEND = CPU()
+    const BACKEND = get_backend([])
 end
 
+const IS_CPU_BACKEND = BACKEND == get_backend([])
+
+global prefer_threads::Bool = !(IS_CPU_BACKEND && "--cpuKA" in ARGS)
 
 array_from_host(h_arr::AbstractArray, dtype=nothing) = array_from_host(BACKEND, h_arr, dtype)
 function array_from_host(backend, h_arr::AbstractArray, dtype=nothing)

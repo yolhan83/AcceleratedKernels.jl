@@ -21,6 +21,7 @@ include("cpu_sample_sort.jl")
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
+        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -36,6 +37,8 @@ arguments are the same as for `Base.sort`.
 CPU settings: use at most `max_tasks` threads to sort the array such that at least `min_elems`
 elements are sorted by each thread. A parallel [`sample_sort!`](@ref) is used, processing
 independent slices of the array and deferring to `Base.sort!` for the final local sorts.
+`prefer_threads` tells AK to prioritize using the CPU algorithm implementation (default behaviour)
+over the KA algorithm through POCL.
 
 Note that the Base Julia `sort!` is mainly memory-bound, so multithreaded sorting only becomes
 faster if it is a more compute-heavy operation to hide memory latency - that includes:
@@ -88,6 +91,7 @@ function _sort_impl!(
 
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
@@ -95,7 +99,7 @@ function _sort_impl!(
     # Temporary buffer, same size as `v`
     temp::Union{Nothing, AbstractArray}=nothing,
 )
-    if backend isa GPU
+    if use_KA_algo(v, prefer_threads)
         merge_sort!(
             v, backend;
             lt, by, rev, order,
@@ -125,6 +129,7 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
+        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -161,6 +166,7 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
+        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -198,6 +204,7 @@ function _sortperm_impl!(
 
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
@@ -205,7 +212,7 @@ function _sortperm_impl!(
     # Temporary buffer, same size as `v`
     temp::Union{Nothing, AbstractArray}=nothing,
 )
-    if backend isa GPU
+    if use_KA_algo(v, prefer_threads)
         merge_sortperm_lowmem!(
             ix, v, backend;
             lt, by, rev, order,
@@ -236,6 +243,7 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
+        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,

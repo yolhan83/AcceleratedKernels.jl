@@ -7,6 +7,7 @@ function mapreduce_nd(
     # CPU settings - ignored here
     max_tasks::Int,
     min_elems::Int,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int,
@@ -113,7 +114,7 @@ function mapreduce_nd(
     end
     dst_size = length(dst)
 
-    if backend isa CPU
+    if !use_KA_algo(src, prefer_threads)
         _mapreduce_nd_cpu_sections!(
             f, op, dst, src;
             init,
