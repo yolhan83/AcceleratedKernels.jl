@@ -1,59 +1,24 @@
-import AcceleratedKernels as AK
-using KernelAbstractions
-
-using BenchmarkTools
-using Random
-Random.seed!(0)
-
-
-# Choose the Array backend:
-#
-# using CUDA
-# const ArrayType = CuArray
-#
-# using AMDGPU
-# const ArrayType = ROCArray
-#
-# using oneAPI
-# const ArrayType = oneArray
-#
-# using Metal
-# const ArrayType = MtlArray
-#
-# using OpenCL
-# const ArrayType = CLArray
-#
-const ArrayType = Array
-
-
-println("Using ArrayType: ", ArrayType)
-
+group = addgroup!(SUITE, "sortperm")
 
 n = 1_000_000
+ntup = 5
 ix = ArrayType(ones(Int, n))
 
+for _test in [(UInt32, UInt32(1):UInt32(1_000_000)), NTuple{ntup, Int64}, Float32]
 
-# Memory-bound, so not much improvement expected when multithreading
-println("\n===\nBenchmarking sortperm! on $n UInt32 - Base vs. AK")
-display(@benchmark Base.sortperm!($ix, v) setup=(v = ArrayType(rand(UInt32(1):UInt32(1_000_000), n))))
-display(@benchmark AK.sortperm!($ix, v) setup=(v = ArrayType(rand(UInt32(1):UInt32(1_000_000), n))))
+    T,randrange = if _test isa DataType
+        _test, _test
+    else
+        _test
+    end
 
+    local _group = addgroup!(group, "$T")
 
-# Lexicographic sorting of tuples - more complex comparators
-ntup = 5
-println("\n===\nBenchmarking sortperm! on $n NTuple{$ntup, Int64} - Base vs. AK")
-display(@benchmark Base.sortperm!($ix, v) setup=(v = ArrayType(rand(NTuple{ntup, Int64}, n))))
-display(@benchmark AK.sortperm!($ix, v) setup=(v = ArrayType(rand(NTuple{ntup, Int64}, n))))
+    _group["base"] = @benchmarkable @sb(Base.sortperm!($ix, v)) setup=(v = ArrayType(rand(rng, $randrange, n)))
+    _group["acck"] = @benchmarkable @sb(AK.sortperm!($ix, v)) setup=(v = ArrayType(rand(rng, $randrange, n)))
 
+    T == Float32 || continue
 
-# Memory-bound again
-println("\n===\nBenchmarking sortperm! on $n Float32 - Base vs. AK")
-display(@benchmark Base.sortperm!($ix, v) setup=(v = ArrayType(rand(Float32, n))))
-display(@benchmark AK.sortperm!($ix, v) setup=(v = ArrayType(rand(Float32, n))))
-
-
-# More complex by=sin
-println("\n===\nBenchmarking sortperm!(by=sin) on $n Float32 - Base vs. AK")
-display(@benchmark Base.sortperm!($ix, v, by=sin) setup=(v = ArrayType(rand(Float32, n))))
-display(@benchmark AK.sortperm!($ix, v, by=sin) setup=(v = ArrayType(rand(Float32, n))))
-
+    _group["base_sin"] = @benchmarkable @sb(Base.sortperm!($ix, v, by=sin)) setup=(v = ArrayType(rand(rng, $randrange, n)))
+    _group["acck_sin"] = @benchmarkable @sb(AK.sortperm!($ix, v, by=sin)) setup=(v = ArrayType(rand(rng, $randrange, n)))
+end
