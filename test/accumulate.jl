@@ -1,4 +1,8 @@
-@testset "accumulate_1d" begin
+ALGS = [AK.ScanPrefixes()]
+
+TEST_DECOUPLED_LOOKBACK[] && push!(ALGS, AK.DecoupledLookback())
+
+@testset "accumulate_1d $(alg isa AK.DecoupledLookback ? "DL" : "SP")" for alg in ALGS
 
     Random.seed!(0)
 
@@ -6,7 +10,7 @@
     for num_elems in 1:256
         x = array_from_host(ones(Int32, num_elems))
         y = copy(x)
-        AK.accumulate!(+, y; init=0, inclusive=false, block_size=128)
+        AK.accumulate!(+, y; init=0, inclusive=false, block_size=128, alg)
         yh = Array(y)
         @test all(yh .== 0:length(yh) - 1)
     end
@@ -15,7 +19,7 @@
     for num_elems in 1:256
         x = array_from_host(rand(1:1000, num_elems), Int32)
         y = copy(x)
-        AK.accumulate!(+, y; init=0, block_size=128)
+        AK.accumulate!(+, y; init=0, block_size=128, alg)
         @test all(Array(y) .== accumulate(+, Array(x)))
     end
 
@@ -24,7 +28,7 @@
         num_elems = rand(1:100_000)
         x = array_from_host(ones(Int32, num_elems))
         y = copy(x)
-        AK.accumulate!(+, y; init=0, inclusive=false)
+        AK.accumulate!(+, y; init=0, inclusive=false, alg)
         yh = Array(y)
         @test all(yh .== 0:length(yh) - 1)
     end
@@ -34,7 +38,7 @@
         num_elems = rand(1:100_000)
         x = array_from_host(rand(1:1000, num_elems), Int32)
         y = copy(x)
-        AK.accumulate!(+, y; init=0)
+        AK.accumulate!(+, y; init=0, alg)
         @test all(Array(y) .== accumulate(+, Array(x)))
     end
 
@@ -43,7 +47,7 @@
         num_elems = rand(1:100_000)
         x = array_from_host(rand(1:1000, num_elems), Int32)
         y = copy(x)
-        AK.accumulate!(+, y; init=0, block_size=16)
+        AK.accumulate!(+, y; init=0, block_size=16, alg)
         @test all(Array(y) .== accumulate(+, Array(x)))
     end
 
@@ -54,7 +58,7 @@
         n3 = rand(1:100)
         vh = rand(Float32, n1, n2, n3)
         v = array_from_host(vh)
-        AK.accumulate!(+, v; init=0)
+        AK.accumulate!(+, v; init=0, alg)
         @test all(Array(v) .≈ accumulate(+, vh))
     end
 
@@ -64,33 +68,33 @@
         x = array_from_host(rand(1:1000, num_elems), Int32)
         y = similar(x)
         init = rand(-1000:1000)
-        AK.accumulate!(+, y, x; init=Int32(init))
+        AK.accumulate!(+, y, x; init=Int32(init), alg)
         @test all(Array(y) .== accumulate(+, Array(x); init))
     end
 
     # Exclusive scan
     x = array_from_host(ones(Int32, 10))
     y = copy(x)
-    AK.accumulate!(+, y; init=0, inclusive=false)
+    AK.accumulate!(+, y; init=0, inclusive=false, alg)
     @test all(Array(y) .== 0:9)
 
     # Test init value is respected with exclusive scan too
     x = array_from_host(ones(Int32, 10))
     y = copy(x)
     init = 10
-    AK.accumulate!(+, y; init=Int32(init), inclusive=false)
+    AK.accumulate!(+, y; init=Int32(init), inclusive=false, alg)
     @test all(Array(y) .== 10:19)
 
     # Test that undefined kwargs are not accepted
     @test_throws MethodError AK.accumulate(+, y; init=10, dims=2, inclusive=false, bad=:kwarg)
 
     # Testing different settings
-    AK.accumulate!(+, array_from_host(ones(Int32, 1000)), init=0, inclusive=false,
-                block_size=128,
+    AK.accumulate!(+, array_from_host(ones(Int32, 1000)); init=0, inclusive=false,
+                block_size=128, alg,
                 temp=array_from_host(zeros(Int32, 1000)),
                 temp_flags=array_from_host(zeros(Int8, 1000)))
-    AK.accumulate(+, array_from_host(ones(Int32, 1000)), init=0, inclusive=false,
-                block_size=128,
+    AK.accumulate(+, array_from_host(ones(Int32, 1000)); init=0, inclusive=false,
+                block_size=128, alg,
                 temp=array_from_host(zeros(Int64, 1000)),
                 temp_flags=array_from_host(zeros(Int8, 1000)))
 end
