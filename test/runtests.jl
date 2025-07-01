@@ -5,7 +5,7 @@ using Random
 import Pkg
 
 # Set to true when testing backends that support this
-const TEST_DECOUPLED_LOOKBACK = Ref{Bool}(false)
+const TEST_DL = Ref{Bool}(false)
 
 # Pass command-line argument to test suite to install the right backend, e.g.
 #   julia> import Pkg
@@ -15,19 +15,19 @@ if "--CUDA" in ARGS
     using CUDA
     CUDA.versioninfo()
     const BACKEND = CUDABackend()
-    TEST_DECOUPLED_LOOKBACK[] = true
+    TEST_DL[] = true
 elseif "--oneAPI" in ARGS
     Pkg.add("oneAPI")
     using oneAPI
     oneAPI.versioninfo()
     const BACKEND = oneAPIBackend()
-    TEST_DECOUPLED_LOOKBACK[] = true
+    TEST_DL[] = true
 elseif "--AMDGPU" in ARGS
     Pkg.add("AMDGPU")
     using AMDGPU
     AMDGPU.versioninfo()
     const BACKEND = ROCBackend()
-    TEST_DECOUPLED_LOOKBACK[] = true
+    TEST_DL[] = true
 elseif "--Metal" in ARGS
     Pkg.add("Metal")
     using Metal
@@ -40,7 +40,7 @@ elseif "--OpenCL" in ARGS
     using OpenCL
     OpenCL.versioninfo()
     const BACKEND = OpenCLBackend()
-    TEST_DECOUPLED_LOOKBACK[] = true
+    TEST_DL[] = true
 elseif !@isdefined(BACKEND)
     # Otherwise do CPU tests
     using InteractiveUtils
