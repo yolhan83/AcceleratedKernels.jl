@@ -160,7 +160,9 @@ function _accumulate_impl!(
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
-    alg::AccumulateAlgorithm=DecoupledLookback(),
+    # FIXME: Switch back to `DecoupledLookback()` as the default algorithm
+    #         once https://github.com/JuliaGPU/AcceleratedKernels.jl/pull/44 is merged.
+    alg::AccumulateAlgorithm=ScanPrefixes(),
 
     # CPU settings
     max_tasks::Int=Threads.nthreads(),
