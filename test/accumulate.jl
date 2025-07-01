@@ -192,6 +192,17 @@ end
     # Test that undefined kwargs are not accepted
     @test_throws MethodError AK.accumulate(+, v; init=10, dims=2, inclusive=false, bad=:kwarg)
 
+    # Test all options with bigger matrices
+    for D in [(1_000_000,3), (3,1_000_000)], dims in [1,2]
+        @testset let D = D, dims = dims
+            vh = ones(Float32, D)
+            v = array_from_host(vh)
+            s = AK.accumulate(+, v; init=0, dims)
+            sh = Array(s)
+            @test sh == accumulate(+, vh; init=0, dims)
+        end
+    end
+
     # Testing different settings
     AK.accumulate(
         (x, y) -> x + 1,
