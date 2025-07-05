@@ -69,7 +69,7 @@ include("partition.jl")
 include("looping.jl")
 include("map.jl")
 include("sort.jl")
-prefer_threads && include("reduce.jl") # Reduce is very broken when using the KA CPU backend
+include("reduce.jl")
 include("accumulate.jl")
 include("predicates.jl")
 include("binarysearch.jl")
