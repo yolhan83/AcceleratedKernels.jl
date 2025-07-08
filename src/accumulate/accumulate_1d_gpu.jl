@@ -204,7 +204,7 @@ end
     #       We use the happens-before relation between stores to `v` and the store to `flags`.
     UnsafeAtomics.fence(UnsafeAtomics.release)
     if ithread == 0x0
-        UnsafeAtomics.store!(pointer(flags, iblock + 0x1), ACC_FLAG_A, UnsafeAtomics.monotonic)
+        UnsafeAtomics.store!(pointer(flags, iblock + 0x1), convert(eltype(flags), ACC_FLAG_A), UnsafeAtomics.monotonic)
     end
 end
 
@@ -293,7 +293,7 @@ function accumulate_1d!(
     if isnothing(temp_flags)
         flags = similar(v, UInt8, num_blocks)
     else
-        @argcheck eltype(temp_flags) == UInt8
+        @argcheck eltype(temp_flags) <: Integer
         @argcheck length(temp_flags) >= num_blocks
         flags = temp_flags
     end
