@@ -149,7 +149,7 @@ end
 
 
 @kernel cpu=false inbounds=true unsafe_indices=true function _accumulate_previous!(
-    op, v, flags::AbstractArray{UInt8}, @Const(prefixes),
+    op, v, flags, @Const(prefixes),
 )
 
     len = length(v)
