@@ -5,7 +5,6 @@
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size=256,
@@ -54,7 +53,6 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size=256,

@@ -47,7 +47,6 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size=256,
@@ -61,8 +60,7 @@ MtlArray, oneArray - with one GPU thread per index.
 On CPUs at most `max_tasks` threads are launched, or fewer such that each thread processes at least
 `min_elems` indices; if a single task ends up being needed, `f` is inlined and no thread is
 launched. Tune it to your function - the more expensive it is, the fewer elements are needed to
-amortise the cost of launching a thread (which is a few μs). `prefer_threads` tells AK to prioritize
-using the CPU algorithm implementation (default behaviour) over the KA algorithm through POCL.
+amortise the cost of launching a thread (which is a few μs).
 
 # Examples
 Normally you would write a for loop like this:
@@ -147,7 +145,6 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size=256,
@@ -161,8 +158,7 @@ MtlArray, oneArray - with one GPU thread per index.
 On CPUs at most `max_tasks` threads are launched, or fewer such that each thread processes at least
 `min_elems` indices; if a single task ends up being needed, `f` is inlined and no thread is
 launched. Tune it to your function - the more expensive it is, the fewer elements are needed to
-amortise the cost of launching a thread (which is a few μs). `prefer_threads` tells AK to prioritize
-using the CPU algorithm implementation (default behaviour) over the KA algorithm through POCL.
+amortise the cost of launching a thread (which is a few μs).
 
 # Examples
 Normally you would write a for loop like this:

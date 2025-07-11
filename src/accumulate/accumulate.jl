@@ -38,7 +38,6 @@ include("accumulate_nd.jl")
         # CPU settings
         max_tasks::Int=Threads.nthreads(),
         min_elems::Int=2,
-        prefer_threads::Bool=true,
 
         # Algorithm choice
         alg::AccumulateAlgorithm=DecoupledLookback(),
@@ -59,7 +58,6 @@ include("accumulate_nd.jl")
         # CPU settings
         max_tasks::Int=Threads.nthreads(),
         min_elems::Int=2,
-        prefer_threads::Bool=true,
 
         # Algorithm choice
         alg::AccumulateAlgorithm=DecoupledLookback(),
@@ -82,9 +80,7 @@ we do not need the constraint of `dst` and `src` being different; to minimise me
 recommend using the single-array interface (the first one above).
 
 ## CPU
-Use at most `max_tasks` threads with at least `min_elems` elements per task. `prefer_threads` tells
-AK to prioritize using the CPU algorithm implementation (default behaviour) over the KA algorithm
-through POCL.
+Use at most `max_tasks` threads with at least `min_elems` elements per task.
 
 Note that accumulation is typically a memory-bound operation, so multithreaded accumulation only
 becomes faster if it is a more compute-heavy operation to hide memory latency - that includes:

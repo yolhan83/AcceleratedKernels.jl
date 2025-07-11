@@ -15,7 +15,6 @@ include("mapreduce_nd.jl")
         # CPU settings
         max_tasks::Int=Threads.nthreads(),
         min_elems::Int=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -32,8 +31,7 @@ The returned type is the same as `init` - to control output precision, specify `
 ## CPU settings
 Use at most `max_tasks` threads with at least `min_elems` elements per task. For N-dimensional
 arrays (`dims::Int`) multithreading currently only becomes faster for `max_tasks >= 4`; all other
-cases are scaling linearly with the number of threads. `prefer_threads` tells AK to prioritize
-using the CPU algorithm implementation (default behaviour) over the KA algorithm through POCL.
+cases are scaling linearly with the number of threads.
 
 Note that multithreading reductions only improves performance for cases with more compute-heavy
 operations, which hide the memory latency and thread launch overhead - that includes:
@@ -100,7 +98,6 @@ end
         # CPU settings
         max_tasks::Int=Threads.nthreads(),
         min_elems::Int=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -120,8 +117,7 @@ The returned type is the same as `init` - to control output precision, specify `
 ## CPU settings
 Use at most `max_tasks` threads with at least `min_elems` elements per task. For N-dimensional
 arrays (`dims::Int`) multithreading currently only becomes faster for `max_tasks >= 4`; all other
-cases are scaling linearly with the number of threads. `prefer_threads` tells AK to prioritize
-using the CPU algorithm implementation (default behaviour) over the KA algorithm through POCL.
+cases are scaling linearly with the number of threads.
 
 ## GPU settings
 The `block_size` parameter controls the number of threads per block.

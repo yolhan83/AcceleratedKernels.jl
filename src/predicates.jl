@@ -39,7 +39,6 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -54,9 +53,7 @@ reduction.
 ## CPU
 Multithreaded parallelisation is only worth it for large arrays, relatively expensive predicates,
 and/or rare occurrence of true; use `max_tasks` and `min_elems` to only use parallelism when worth
-it in your application. When only one thread is needed, there is no overhead. `prefer_threads`
-tells AK to prioritize using the CPU algorithm implementation (default behaviour) over the KA
-algorithm through POCL.
+it in your application. When only one thread is needed, there is no overhead.
 
 ## GPU
 There are two possible `alg` choices:
@@ -176,7 +173,6 @@ end
         # CPU settings
         max_tasks=Threads.nthreads(),
         min_elems=1,
-        prefer_threads::Bool=true,
 
         # GPU settings
         block_size::Int=256,
@@ -191,9 +187,7 @@ reduction.
 ## CPU
 Multithreaded parallelisation is only worth it for large arrays, relatively expensive predicates,
 and/or rare occurrence of true; use `max_tasks` and `min_elems` to only use parallelism when worth
-it in your application. When only one thread is needed, there is no overhead. `prefer_threads`
-tells AK to prioritize using the CPU algorithm implementation (default behaviour) over the KA
-algorithm through POCL.
+it in your application. When only one thread is needed, there is no overhead.
 
 ## GPU
 There are two possible `alg` choices:
