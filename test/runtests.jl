@@ -41,7 +41,6 @@ elseif "--OpenCL" in ARGS
     using OpenCL
     OpenCL.versioninfo()
     const BACKEND = OpenCLBackend()
-    TEST_DL[] = true
 elseif !@isdefined(BACKEND)
     # Otherwise do CPU tests
     using InteractiveUtils
