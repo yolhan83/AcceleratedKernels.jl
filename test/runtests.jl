@@ -35,19 +35,22 @@ elseif "--Metal" in ARGS
     const BACKEND = MetalBackend()
 elseif "--OpenCL" in ARGS
     Pkg.add(name="OpenCL", rev="master")
+    Pkg.add(name="SPIRVIntrinsics", rev="master")
     Pkg.add("pocl_jll")
     using pocl_jll
     using OpenCL
     OpenCL.versioninfo()
     const BACKEND = OpenCLBackend()
-    TEST_DL[] = true
 elseif !@isdefined(BACKEND)
     # Otherwise do CPU tests
     using InteractiveUtils
     InteractiveUtils.versioninfo()
-    const BACKEND = CPU()
+    const BACKEND = get_backend([])
 end
 
+const IS_CPU_BACKEND = BACKEND == get_backend([])
+
+global prefer_threads::Bool = !(IS_CPU_BACKEND && "--cpuKA" in ARGS)
 
 array_from_host(h_arr::AbstractArray, dtype=nothing) = array_from_host(BACKEND, h_arr, dtype)
 function array_from_host(backend, h_arr::AbstractArray, dtype=nothing)

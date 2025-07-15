@@ -175,6 +175,7 @@ function _mapreduce_impl(
     # CPU settings
     max_tasks::Int=Threads.nthreads(),
     min_elems::Int=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
@@ -182,18 +183,28 @@ function _mapreduce_impl(
     switch_below::Int=0,
 )
     if isnothing(dims)
-        return mapreduce_1d(
-            f, op, src, backend;
-            init, neutral,
-            max_tasks, min_elems,
-            block_size, temp,
-            switch_below
-        )
+        if use_KA_algo(src, prefer_threads)
+            mapreduce_1d_gpu(
+                f, op, src, backend;
+                init, neutral,
+                max_tasks, min_elems,
+                block_size, temp,
+                switch_below
+            )
+        else
+            mapreduce_1d_cpu(
+                f, op, src, backend;
+                init, neutral,
+                max_tasks, min_elems,
+                block_size, temp,
+                switch_below
+            )
+        end
     else
         return mapreduce_nd(
             f, op, src, backend;
-            init, neutral,
-            dims, max_tasks=max_tasks,
+            init, neutral, dims,
+            max_tasks, prefer_threads,
             min_elems, block_size,
             temp,
         )

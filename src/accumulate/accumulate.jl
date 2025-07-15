@@ -167,6 +167,7 @@ function _accumulate_impl!(
     # CPU settings
     max_tasks::Int=Threads.nthreads(),
     min_elems::Int=2,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
@@ -174,17 +175,26 @@ function _accumulate_impl!(
     temp_flags::Union{Nothing, AbstractArray}=nothing,
 )
     if isnothing(dims)
-        return accumulate_1d!(
-            op, v, backend, alg;
-            init, neutral, inclusive,
-            max_tasks, min_elems,
-            block_size, temp, temp_flags,
-        )
+        return if use_KA_algo(v, prefer_threads)
+            accumulate_1d_gpu!(
+                op, v, backend, alg;
+                init, neutral, inclusive,
+                max_tasks, min_elems,
+                block_size, temp, temp_flags,
+            )
+        else
+            accumulate_1d_cpu!(
+                op, v, backend, alg;
+                init, neutral, inclusive,
+                max_tasks, min_elems,
+                block_size, temp, temp_flags,
+            )
+        end
     else
         return accumulate_nd!(
             op, v, backend;
             init, neutral, dims, inclusive,
-            max_tasks, min_elems,
+            max_tasks, min_elems, prefer_threads,
             block_size,
         )
     end
