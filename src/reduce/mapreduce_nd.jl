@@ -332,42 +332,8 @@ end
     sdata[ithread + 0x1] = partial
     @synchronize()
 
-    if N >= 512u16
-        ithread < 256u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 256u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 256u16
-        ithread < 128u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 128u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 128u16
-        ithread < 64u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 64u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 64u16
-        ithread < 32u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 32u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 32u16
-        ithread < 16u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 16u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 16u16
-        ithread < 8u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 8u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 8u16
-        ithread < 4u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 4u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 4u16
-        ithread < 2u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 2u16 + 0x1]))
-        @synchronize()
-    end
-    if N >= 2u16
-        ithread < 1u16 && (sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 1u16 + 0x1]))
-        @synchronize()
-    end
+    @inline reduce_group!(@context, op, sdata, N, ithread)
+
     if ithread == 0x0
         dst[iblock + 0x1] = op(init, sdata[0x1])
     end

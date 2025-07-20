@@ -14,6 +14,7 @@ module AcceleratedKernels
 using ArgCheck: @argcheck
 using GPUArraysCore: AnyGPUArray, @allowscalar
 using KernelAbstractions
+using KernelAbstractions: @context
 
 
 # Exposed functions from upstream packages
