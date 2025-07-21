@@ -307,7 +307,7 @@ end
         dims::Union{Nothing, Int}=nothing,
 
         # Algorithm choice
-        alg::AccumulateAlgorithm=DecoupledLookback(),
+        alg::AccumulateAlgorithm=ScanPrefixes(),
 
         # GPU settings
         block_size::Int=256,
@@ -317,9 +317,6 @@ end
 
 Cumulative sum of elements of an array, with optional `init` and `dims`. Arguments are the same as
 for [`accumulate`](@ref).
-
-## Platform-Specific Notes
-On Apple Metal, the `alg=ScanPrefixes()` algorithm is used by default.
 
 # Examples
 Simple cumulative sum of elements in a vector:
@@ -360,7 +357,7 @@ end
         dims::Union{Nothing, Int}=nothing,
 
         # Algorithm choice
-        alg::AccumulateAlgorithm=DecoupledLookback(),
+        alg::AccumulateAlgorithm=ScanPrefixes(),
 
         # GPU settings
         block_size::Int=256,
@@ -370,9 +367,6 @@ end
 
 Cumulative product of elements of an array, with optional `init` and `dims`. Arguments are the same
 as for [`accumulate`](@ref).
-
-## Platform-Specific Notes
-On Apple Metal, the `alg=ScanPrefixes()` algorithm is used by default.
 
 # Examples
 Simple cumulative product of elements in a vector:
