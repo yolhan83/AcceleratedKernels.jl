@@ -254,8 +254,8 @@ end
 
 
 # DecoupledLookback algorithm
-function accumulate_1d!(
-    op, v::AbstractArray, backend::GPU, ::DecoupledLookback;
+function accumulate_1d_gpu!(
+    op, v::AbstractArray, backend::Backend, ::DecoupledLookback;
     init,
     neutral,
     inclusive::Bool,
@@ -313,8 +313,8 @@ end
 
 
 # ScanPrefixes algorithm
-function accumulate_1d!(
-    op, v::AbstractArray, backend::GPU, ::ScanPrefixes;
+function accumulate_1d_gpu!(
+    op, v::AbstractArray, backend, ::ScanPrefixes;
     init,
     neutral,
     inclusive::Bool,

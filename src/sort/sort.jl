@@ -88,6 +88,7 @@ function _sort_impl!(
 
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
@@ -95,7 +96,7 @@ function _sort_impl!(
     # Temporary buffer, same size as `v`
     temp::Union{Nothing, AbstractArray}=nothing,
 )
-    if backend isa GPU
+    if use_KA_algo(v, prefer_threads)
         merge_sort!(
             v, backend;
             lt, by, rev, order,
@@ -198,6 +199,7 @@ function _sortperm_impl!(
 
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
@@ -205,7 +207,7 @@ function _sortperm_impl!(
     # Temporary buffer, same size as `v`
     temp::Union{Nothing, AbstractArray}=nothing,
 )
-    if backend isa GPU
+    if use_KA_algo(v, prefer_threads)
         merge_sortperm_lowmem!(
             ix, v, backend;
             lt, by, rev, order,

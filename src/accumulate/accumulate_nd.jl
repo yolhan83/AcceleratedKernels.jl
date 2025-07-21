@@ -8,6 +8,7 @@ function accumulate_nd!(
     # CPU settings
     max_tasks::Int,
     min_elems::Int,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int,
@@ -34,7 +35,7 @@ function accumulate_nd!(
 
     # Degenerate cases end
 
-    if backend isa CPU
+    if !use_KA_algo(v, prefer_threads)
         _accumulate_nd_cpu_sections!(op, v; init, dims, inclusive, max_tasks, min_elems)
     else
         # On GPUs we have two parallelisation approaches, based on which dimension has more elements:
@@ -227,7 +228,7 @@ end
     # We have a block of threads to accumulate along the dims axis; do it in chunks of
     # block_size and keep track of previous chunks' running prefix
     ichunk = typeof(iblock)(0)
-    num_chunks = (length_dims + block_size - 0x1) ÷ block_size
+    num_chunks = (length_dims + (0x2 * block_size) - 0x1) ÷ (0x2 * block_size)
     total = neutral
 
     if ithread == 0x0
@@ -326,7 +327,7 @@ end
 
             # ...and accumulate the last value too
             if bi == 0x2 * block_size - 0x1
-                if iblock < num_chunks - 0x1
+                if ichunk < num_chunks - 0x1
                     temp[bi + bank_offset_b + 0x1] = op(t2, v[
                         input_base_idx +
                         ((ichunk + 0x1) * block_size * 0x2 - 0x1) * vstrides[dims] +

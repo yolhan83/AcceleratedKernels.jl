@@ -4,6 +4,8 @@ using Test
 using Random
 import Pkg
 
+# Set to true when testing backends that support this
+const TEST_DL = Ref{Bool}(false)
 
 # Pass command-line argument to test suite to install the right backend, e.g.
 #   julia> import Pkg
@@ -13,16 +15,19 @@ if "--CUDA" in ARGS
     using CUDA
     CUDA.versioninfo()
     const BACKEND = CUDABackend()
+    TEST_DL[] = true
 elseif "--oneAPI" in ARGS
     Pkg.add("oneAPI")
     using oneAPI
     oneAPI.versioninfo()
     const BACKEND = oneAPIBackend()
+    TEST_DL[] = true
 elseif "--AMDGPU" in ARGS
     Pkg.add("AMDGPU")
     using AMDGPU
     AMDGPU.versioninfo()
     const BACKEND = ROCBackend()
+    TEST_DL[] = true
 elseif "--Metal" in ARGS
     Pkg.add("Metal")
     using Metal
@@ -30,6 +35,7 @@ elseif "--Metal" in ARGS
     const BACKEND = MetalBackend()
 elseif "--OpenCL" in ARGS
     Pkg.add(name="OpenCL", rev="master")
+    Pkg.add(name="SPIRVIntrinsics", rev="master")
     Pkg.add("pocl_jll")
     using pocl_jll
     using OpenCL
@@ -39,9 +45,12 @@ elseif !@isdefined(BACKEND)
     # Otherwise do CPU tests
     using InteractiveUtils
     InteractiveUtils.versioninfo()
-    const BACKEND = CPU()
+    const BACKEND = get_backend([])
 end
 
+const IS_CPU_BACKEND = BACKEND == get_backend([])
+
+global prefer_threads::Bool = !(IS_CPU_BACKEND && "--cpuKA" in ARGS)
 
 array_from_host(h_arr::AbstractArray, dtype=nothing) = array_from_host(BACKEND, h_arr, dtype)
 function array_from_host(backend, h_arr::AbstractArray, dtype=nothing)

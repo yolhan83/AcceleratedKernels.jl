@@ -15,7 +15,7 @@ end
 function _forindices_gpu(
     f,
     indices,
-    backend::GPU;
+    backend::Backend;
 
     block_size::Int=256,
 )
@@ -125,11 +125,12 @@ function foreachindex(
     # CPU settings
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size=256,
 )
-    if backend isa GPU
+    if use_KA_algo(itr, prefer_threads)
         _forindices_gpu(f, eachindex(itr), backend; block_size)
     else
         _forindices_threads(f, eachindex(itr); max_tasks, min_elems)
@@ -218,6 +219,7 @@ function foraxes(
     # CPU settings
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size=256,
@@ -226,11 +228,11 @@ function foraxes(
         return foreachindex(
             f, itr, backend;
             max_tasks, min_elems,
-            block_size,
+            prefer_threads, block_size,
         )
     end
 
-    if backend isa GPU
+    if use_KA_algo(itr, prefer_threads)
         _forindices_gpu(f, axes(itr, dims), backend; block_size)
     else
         _forindices_threads(f, axes(itr, dims); max_tasks, min_elems)

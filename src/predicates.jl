@@ -114,11 +114,12 @@ function _any_impl(
     # CPU settings
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
 )
-    if backend isa GPU
+    if use_KA_algo(v, prefer_threads)
         @argcheck block_size > 0
 
         # Some platforms crash when multiple threads write to the same memory location in a global
@@ -137,7 +138,8 @@ function _any_impl(
                 backend;
                 init=false,
                 neutral=false,
-                block_size=block_size,
+                prefer_threads=true,
+                block_size,
                 temp=alg.temp,
                 switch_below=alg.switch_below,
             )
@@ -246,11 +248,12 @@ function _all_impl(
     # CPU settings
     max_tasks=Threads.nthreads(),
     min_elems=1,
+    prefer_threads::Bool=true,
 
     # GPU settings
     block_size::Int=256,
 )
-    if backend isa GPU
+    if use_KA_algo(v, prefer_threads)
         @argcheck block_size > 0
 
         # Some platforms crash when multiple threads write to the same memory location in a global
@@ -269,7 +272,8 @@ function _all_impl(
                 backend;
                 init=true,
                 neutral=true,
-                block_size=block_size,
+                prefer_threads=false,
+                block_size,
                 temp=alg.temp,
                 switch_below=alg.switch_below,
             )
