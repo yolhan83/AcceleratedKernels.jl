@@ -4,8 +4,8 @@ end
 
 # Helper function to check whether the package cpu implementation of an algorithm should be used
 const CPU_BACKEND = get_backend([])
-@inline function use_KA_algo(output_array, prefer_threads)
-    return get_backend(output_array) != CPU_BACKEND || !prefer_threads
+@inline function use_gpu_algo(backend, prefer_threads)
+    return backend != CPU_BACKEND || !prefer_threads
 end
 
 """
