@@ -3,8 +3,9 @@ function ispow2(x)
 end
 
 # Helper function to check whether the package cpu implementation of an algorithm should be used
-@inline function use_KA_algo(output_array, prefer_threads)
-    return output_array isa AnyGPUArray || !prefer_threads
+const CPU_BACKEND = get_backend([])
+@inline function use_gpu_algo(backend, prefer_threads)
+    return backend != CPU_BACKEND || !prefer_threads
 end
 
 """
