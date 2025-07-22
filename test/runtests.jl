@@ -21,7 +21,9 @@ elseif "--oneAPI" in ARGS
     using oneAPI
     oneAPI.versioninfo()
     const BACKEND = oneAPIBackend()
-    TEST_DL[] = true
+
+    # FIXME: need atomic orderings for `DecoupledLookback` in oneAPI
+    # TEST_DL[] = true
 elseif "--AMDGPU" in ARGS
     Pkg.add("AMDGPU")
     using AMDGPU

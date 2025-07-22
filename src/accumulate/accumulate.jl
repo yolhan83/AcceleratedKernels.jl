@@ -40,7 +40,7 @@ include("accumulate_nd.jl")
         min_elems::Int=2,
 
         # Algorithm choice
-        alg::AccumulateAlgorithm=DecoupledLookback(),
+        alg::AccumulateAlgorithm=ScanPrefixes(),
 
         # GPU settings
         block_size::Int=256,
@@ -60,7 +60,7 @@ include("accumulate_nd.jl")
         min_elems::Int=2,
 
         # Algorithm choice
-        alg::AccumulateAlgorithm=DecoupledLookback(),
+        alg::AccumulateAlgorithm=ScanPrefixes(),
 
         # GPU settings
         block_size::Int=256,
@@ -89,13 +89,13 @@ becomes faster if it is a more compute-heavy operation to hide memory latency - 
 
 ## GPU
 For the 1D case (`dims=nothing`), the `alg` can be one of the following:
-- `DecoupledLookback()`: the default algorithm, using opportunistic lookback to reuse earlier
-  blocks' results; requires device-level memory consistency guarantees, which Apple Metal does not
-  provide.
-- `ScanPrefixes()`: a simpler algorithm that scans the prefixes of each block, with no lookback; it
-  has similar performance as `DecoupledLookback()` for large block sizes, and small to medium arrays,
+- `ScanPrefixes()`: the default algorithm that scans the prefixes of each block, with no lookback; it
+  has better performance than `DecoupledLookback()` for large block sizes, and small to medium arrays,
   but poorer scaling for many blocks; there is no performance degradation below `block_size^2`
-  elements.
+  elements, but it remains fast well into millions of elements.
+- `DecoupledLookback()`: a more complex algorithm using opportunistic lookback to reuse earlier
+  blocks' results; requires device-level memory consistency guarantees (which Apple Metal does not
+  provide) and atomic orderings; theoretically more scalable for many blocks.
 
 A different, unique algorithm is used for the multi-dimensional case (`dims` is an integer).
 
@@ -105,13 +105,7 @@ The temporaries are only used for the 1D case (`dims=nothing`): `temp` stores pe
 `temp_flags` is only used for the `DecoupledLookback()` algorithm for flagging if blocks are ready;
 they should both have at least `(length(v) + 2 * block_size - 1) ÷ (2 * block_size)` elements; also,
 `eltype(v) === eltype(temp)` is required; the elements in `temp_flags` can be any integers, but
-`Int8` is used by default to reduce memory usage.
-
-# Platform-Specific Notes
-On Metal, the `alg=ScanPrefixes()` algorithm is used by default, as Apple Metal GPUs do not have
-strong enough memory consistency guarantees for the `DecoupledLookback()` algorithm - which
-produces incorrect results about 0.38% of the time (the beauty of parallel algorithms, ey). Also,
-`block_size=1024` is used here by default to reduce the number of coupled lookbacks.
+`UInt8` is used by default to reduce memory usage.
 
 # Examples
 Example computing an inclusive prefix sum (the typical GPU "scan"):
@@ -123,7 +117,7 @@ v = oneAPI.ones(Int32, 100_000)
 AK.accumulate!(+, v, init=0)
 
 # Use a different algorithm
-AK.accumulate!(+, v, alg=AK.ScanPrefixes())
+AK.accumulate!(+, v, alg=AK.DecoupledLookback())
 ```
 """
 function accumulate!(
@@ -160,8 +154,6 @@ function _accumulate_impl!(
     dims::Union{Nothing, Int}=nothing,
     inclusive::Bool=true,
 
-    # FIXME: Switch back to `DecoupledLookback()` as the default algorithm
-    #         once https://github.com/JuliaGPU/AcceleratedKernels.jl/pull/44 is merged.
     alg::AccumulateAlgorithm=ScanPrefixes(),
 
     # CPU settings
@@ -214,7 +206,7 @@ end
         min_elems::Int=2,
 
         # Algorithm choice
-        alg::AccumulateAlgorithm=DecoupledLookback(),
+        alg::AccumulateAlgorithm=ScanPrefixes(),
 
         # GPU settings
         block_size::Int=256,
