@@ -25,60 +25,7 @@
 
     @synchronize()
 
-    if N >= 512u16
-        if ithread < 256u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 256u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 256u16
-        if ithread < 128u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 128u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 128u16
-        if ithread < 64u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 64u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 64u16
-        if ithread < 32u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 32u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 32u16
-        if ithread < 16u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 16u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 16u16
-        if ithread < 8u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 8u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 8u16
-        if ithread < 4u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 4u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 4u16
-        if ithread < 2u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 2u16 + 0x1])
-        end
-        @synchronize()
-    end
-    if N >= 2u16
-        if ithread < 1u16
-            sdata[ithread + 0x1] = op(sdata[ithread + 0x1], sdata[ithread + 0x1 + 0x1])
-        end
-        @synchronize()
-    end
+    @inline reduce_group!(@context, op, sdata, N, ithread)
 
     # Code below would work on NVidia GPUs with warp size of 32, but create race conditions and
     # return incorrect results on Intel Graphics. It would be useful to have a way to statically
