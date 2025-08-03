@@ -108,12 +108,9 @@ end
 
 # Select benchmarks to run
 benches = filter(x -> endswith(x, ".jl") && x ∉ noinclude, Base.readdir())
-@show benches
 if !isempty(other_args)
     benches = filter(x -> any(startswith.(Ref(x), other_args)), benches)
 end
-
-@show benches
 
 SUITE = BenchmarkGroup()
 for b in benches
