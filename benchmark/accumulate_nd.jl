@@ -1,75 +1,28 @@
-import AcceleratedKernels as AK
-using KernelAbstractions
+group = addgroup!(SUITE, "accumulate_nd")
 
-using BenchmarkTools
-using Random
-Random.seed!(0)
+acc_f(x, y) = sin(x) + cos(y)
 
-
-# Choose the Array backend:
-#
-# using CUDA
-# const ArrayType = CuArray
-#
-# using AMDGPU
-# const ArrayType = ROCArray
-#
-# using oneAPI
-# const ArrayType = oneArray
-#
-# using Metal
-# const ArrayType = MtlArray
-#
-# using OpenCL
-# const ArrayType = CLArray
-#
-const ArrayType = Array
-
-
-println("Using ArrayType: ", ArrayType)
-
+GPUArrays.neutral_element(::typeof(acc_f), T) = T(0)
 
 n1 = 3
 n2 = 1_000_000
 
+for T in [UInt32, Int64, Float32]
+    local _group = addgroup!(group, "$T")
 
-println("\n===\nBenchmarking accumulate(+, dims=1) on $n1 × $n2 UInt32 - Base vs. AK")
-display(@benchmark Base.accumulate(+, v, init=UInt32(0), dims=1) setup=(v = ArrayType(rand(UInt32(1):UInt32(100), n1, n2))))
-display(@benchmark AK.accumulate(+, v, init=UInt32(0), dims=1) setup=(v = ArrayType(rand(UInt32(1):UInt32(100), n1, n2))))
+    local randrange = T == Float32 ? T : T(1):T(100)
 
-println("\n===\nBenchmarking accumulate(+, dims=2) on $n1 × $n2 UInt32 - Base vs. AK")
-display(@benchmark Base.accumulate(+, v, init=UInt32(0), dims=2) setup=(v = ArrayType(rand(UInt32(1):UInt32(100), n1, n2))))
-display(@benchmark AK.accumulate(+, v, init=UInt32(0), dims=2) setup=(v = ArrayType(rand(UInt32(1):UInt32(100), n1, n2))))
+    _group["base_dims=1"] = @benchmarkable @sb(Base.accumulate(+, v, init=$T(0), dims=1)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
+    _group["acck_dims=1"] = @benchmarkable @sb(AK.accumulate(+, v, init=$T(0), dims=1)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
 
+    _group["base_dims=2"] = @benchmarkable @sb(Base.accumulate(+, v, init=$T(0), dims=2)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
+    _group["acck_dims=2"] = @benchmarkable @sb(AK.accumulate(+, v, init=$T(0), dims=2)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
 
+    T == Float32 || continue
 
+    _group["base_sincos_dims=1"] = @benchmarkable @sb(Base.accumulate(acc_f, v, init=$T(0), dims=1)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
+    _group["acck_sincos_dims=1"] = @benchmarkable @sb(AK.accumulate(acc_f, v, init=$T(0), neutral=$T(0), dims=1)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
 
-println("\n===\nBenchmarking accumulate(+, dims=1) on $n1 × $n2 Int64 - Base vs. AK")
-display(@benchmark Base.accumulate(+, v, init=Int64(0), dims=1) setup=(v = ArrayType(rand(Int64(1):Int64(100), n1, n2))))
-display(@benchmark AK.accumulate(+, v, init=Int64(0), dims=1) setup=(v = ArrayType(rand(Int64(1):Int64(100), n1, n2))))
-
-println("\n===\nBenchmarking accumulate(+, dims=2) on $n1 × $n2 Int64 - Base vs. AK")
-display(@benchmark Base.accumulate(+, v, init=Int64(0), dims=2) setup=(v = ArrayType(rand(Int64(1):Int64(100), n1, n2))))
-display(@benchmark AK.accumulate(+, v, init=Int64(0), dims=2) setup=(v = ArrayType(rand(Int64(1):Int64(100), n1, n2))))
-
-
-
-
-println("\n===\nBenchmarking accumulate(+, dims=1) on $n1 × $n2 Float32 - Base vs. AK")
-display(@benchmark Base.accumulate(+, v, init=Float32(0), dims=1) setup=(v = ArrayType(rand(Float32, n1, n2))))
-display(@benchmark AK.accumulate(+, v, init=Float32(0), dims=1) setup=(v = ArrayType(rand(Float32, n1, n2))))
-
-println("\n===\nBenchmarking accumulate(+, dims=2) on $n1 × $n2 Float32 - Base vs. AK")
-display(@benchmark Base.accumulate(+, v, init=Float32(0), dims=2) setup=(v = ArrayType(rand(Float32, n1, n2))))
-display(@benchmark AK.accumulate(+, v, init=Float32(0), dims=2) setup=(v = ArrayType(rand(Float32, n1, n2))))
-
-
-
-
-println("\n===\nBenchmarking accumulate((x, y) -> sin(x) + cos(y)), dims=1) on $n1 × $n2 Float32 - Base vs. AK")
-display(@benchmark Base.accumulate((x, y) -> sin(x) + cos(y), v, init=Float32(0), dims=1) setup=(v = ArrayType(rand(Float32, n1, n2))))
-display(@benchmark AK.accumulate((x, y) -> sin(x) + cos(y), v, init=Float32(0), neutral=Float32(0), dims=1) setup=(v = ArrayType(rand(Float32, n1, n2))))
-
-println("\n===\nBenchmarking accumulate((x, y) -> sin(x) + cos(y)), dims=2) on $n1 × $n2 Float32 - Base vs. AK")
-display(@benchmark Base.accumulate((x, y) -> sin(x) + cos(y), v, init=Float32(0), dims=2) setup=(v = ArrayType(rand(Float32, n1, n2))))
-display(@benchmark AK.accumulate((x, y) -> sin(x) + cos(y), v, init=Float32(0), neutral=Float32(0), dims=2) setup=(v = ArrayType(rand(Float32, n1, n2))))
+    _group["base_sincos_dims=2"] = @benchmarkable @sb(Base.accumulate(acc_f, v, init=$T(0), dims=2)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
+    _group["acck_sincos_dims=2"] = @benchmarkable @sb(AK.accumulate(acc_f, v, init=$T(0), neutral=$T(0), dims=2)) setup=(v = ArrayType(rand(rng, $randrange, n1, n2)))
+end

@@ -1,53 +1,17 @@
-import AcceleratedKernels as AK
-using KernelAbstractions
-
-using BenchmarkTools
-using Random
-Random.seed!(0)
-
-
-# Choose the Array backend:
-#
-# using CUDA
-# const ArrayType = CuArray
-#
-# using AMDGPU
-# const ArrayType = ROCArray
-#
-# using oneAPI
-# const ArrayType = oneArray
-#
-# using Metal
-# const ArrayType = MtlArray
-#
-# using OpenCL
-# const ArrayType = CLArray
-#
-const ArrayType = Array
-
-
-println("Using ArrayType: ", ArrayType)
-
+group = addgroup!(SUITE, "mapreduce_1d")
 
 n = 1_000_000
 
+for T in [UInt32, Int64, Float32]
+    local _group = addgroup!(group, "$T")
 
-println("\n===\nBenchmarking mapreduce(identity, +) on $n UInt32 - Base vs. AK")
-display(@benchmark Base.reduce(+, v, init=UInt32(0)) setup=(v = ArrayType(rand(UInt32(1):UInt32(100), n))))
-display(@benchmark AK.reduce(+, v, init=UInt32(0)) setup=(v = ArrayType(rand(UInt32(1):UInt32(100), n))))
+    local randrange = T == Float32 ? T : T(1):T(100)
 
+    _group["base_1d"] = @benchmarkable @sb(Base.accumulate(+, v, init=$T(0))) setup=(v = ArrayType(rand(rng, $randrange, n)))
+    _group["acck_1d"] = @benchmarkable @sb(AK.accumulate(+, v, init=$T(0))) setup=(v = ArrayType(rand(rng, $randrange, n)))
 
-println("\n===\nBenchmarking mapreduce(identity, +) on $n Int64 - Base vs. AK")
-display(@benchmark Base.reduce(+, v, init=Int64(0)) setup=(v = ArrayType(rand(Int64(1):Int64(100), n))))
-display(@benchmark AK.reduce(+, v, init=Int64(0)) setup=(v = ArrayType(rand(Int64(1):Int64(100), n))))
+    T == Float32 || continue
 
-
-println("\n===\nBenchmarking mapreduce(identity, +) on $n Float32 - Base vs. AK")
-display(@benchmark Base.reduce(+, v, init=Float32(0)) setup=(v = ArrayType(rand(Float32, n))))
-display(@benchmark AK.reduce(+, v, init=Float32(0)) setup=(v = ArrayType(rand(Float32, n))))
-
-
-println("\n===\nBenchmarking mapreduce!(sin, +) on $n Float32 - Base vs. AK")
-display(@benchmark Base.mapreduce(sin, +, v, init=Float32(0)) setup=(v = ArrayType(rand(Float32, n))))
-display(@benchmark AK.mapreduce(sin, +, v, init=Float32(0)) setup=(v = ArrayType(rand(Float32, n))))
-
+    _group["base_1d_sin"] = @benchmarkable @sb(Base.mapreduce(sin, +, v, init=$T(0))) setup=(v = ArrayType(rand(rng, $randrange, n)))
+    _group["acck_1d_sin"] = @benchmarkable @sb(AK.mapreduce(sin, +, v, init=$T(0))) setup=(v = ArrayType(rand(rng, $randrange, n)))
+end
