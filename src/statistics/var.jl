@@ -1,4 +1,4 @@
-@kernel inbounds=true cpu=false unsafe_indices=true function slicing_mean1d!(src,m)
+@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean1d!(src,m)
     N = @groupsize()[1]
     iblock = @index(Group, Linear)
     ithread = @index(Local, Linear)
@@ -7,7 +7,7 @@
         src[i] -= m
     end
 end
-@kernel inbounds=true cpu=false unsafe_indices=true function slicing_mean2d!(src,m,dims)
+@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean2d!(src,m,dims)
     @assert 1<=dims<=2
     Nx,Ny = @groupsize()
     iblock,jblock = @index(Group, NTuple)
@@ -22,7 +22,7 @@ end
         end
     end
 end
-@kernel inbounds=true cpu=false unsafe_indices=true function slicing_mean3d!(src,m,dims)
+@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean3d!(src,m,dims)
     @assert 1<=dims<=3
     Nx,Ny,Nz = @groupsize()
     iblock,jblock,kblock = @index(Group, NTuple)
