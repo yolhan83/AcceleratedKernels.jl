@@ -1,4 +1,4 @@
-@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean1d!(src,m)
+@kernel inbounds=true unsafe_indices=true function _slicing_mean1d!(src,m)
     N = @groupsize()[1]
     iblock = @index(Group, Linear)
     ithread = @index(Local, Linear)
@@ -7,40 +7,40 @@
         src[i] -= m
     end
 end
-@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean2d!(src,m,dims)
-    @assert 1<=dims<=2
-    Nx,Ny = @groupsize()
-    iblock,jblock = @index(Group, NTuple)
-    ithread,jthread = @index(Local, NTuple)
-    i = ithread + (iblock - 0x1) * Nx
-    j = jthread + (jblock - 0x1) * Ny
-    if i<=size(src,1) && j<=size(src,2)
-        if dims == 1
-            src[i,j] -= m[1,j]
-        else
-            src[i,j] -= m[i,1]
-        end
-    end
-end
-@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean3d!(src,m,dims)
-    @assert 1<=dims<=3
-    Nx,Ny,Nz = @groupsize()
-    iblock,jblock,kblock = @index(Group, NTuple)
-    ithread,jthread,kthread = @index(Local, NTuple)
-    i = ithread + (iblock - 0x1) * Nx
-    j = jthread + (jblock - 0x1) * Ny
-    k = kthread + (kblock - 0x1) * Nz
-    if i<=size(src,1) && j<=size(src,2) && k<=size(src,3)
-        if dims == 1
-            src[i,j,k] -= m[1,j,k]
-        elseif dims == 2
-            src[i,j,k] -= m[i,1,k]
-        else
-            src[i,j,k] -= m[i,j,1]
-        end
-    end
-end
 
+# N-D version: m is an array with size(m, dims) == 1
+@kernel inbounds=true unsafe_indices=true function _slicing_meannd!(src, m, dims)
+    @assert 1 <= dims <= ndims(src)
+
+    # Shapes/strides
+    src_strides = strides(src)
+    m_strides   = strides(m)
+    nd          = length(src_strides)
+
+    # Group/thread indices (zero-based, like your mapreduce kernel)
+    N       = @groupsize()[1]
+    iblock  = @index(Group, Linear) - 0x1
+    ithread = @index(Local, Linear) - 0x1
+    tid     = ithread + iblock * N
+
+    if tid < length(src)
+        # Reconstruct multi-index of src from linear tid using strides,
+        # and build the matching linear index into m by ignoring the reduced dim.
+        tmp    = tid
+        midx0  = typeof(tid)(0)  # zero-based linear index into m
+
+        KernelAbstractions.Extras.@unroll for i in nd:-1i16:1i16
+            idxi = tmp ÷ src_strides[i]   # coordinate along dimension i (zero-based)
+            if i != dims
+                midx0 += idxi * m_strides[i]
+            end
+            tmp = tmp % src_strides[i]
+        end
+
+        # Subtract: src linear index is tid+1 (1-based), m uses midx0+1 with reduced axis fixed to 1
+        src[tid + 0x1] -= m[midx0 + 0x1]
+    end
+end
 
 """
     var!(
@@ -111,13 +111,11 @@ function var!(
         src = Float32.(src)
     end
     # use a special kernel ? what if more than 3 dims ?
-    if backend isa GPU && N<=3
+    if backend isa GPU
         if N == 1
             _slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
-        elseif N == 2
-            _slicing_mean2d!(backend,block_size)(src,m,dims;ndrange=size(src))
-        elseif N == 3
-            _slicing_mean3d!(backend,block_size)(src,m,dims;ndrange=size(src))
+        else 
+            _slicing_meannd!(backend,block_size)(src,m,dims;ndrange=size(src))
         end
     else
         for sl in eachslice(src,dims=dims)
