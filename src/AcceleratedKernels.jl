@@ -36,4 +36,5 @@ include("predicates.jl")
 include("arithmetics.jl")
 include("statistics/statistics.jl")
 
+
 end     # module AcceleratedKernels
