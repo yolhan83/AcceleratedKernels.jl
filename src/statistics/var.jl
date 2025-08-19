@@ -61,7 +61,7 @@ end
 
     Compute the varience of `src` along dimensions `dims`. Can change `src` when using non-integer types
     If `dims` is `nothing`, reduce `src` to a scalar. If `dims` is an integer, reduce `src` along that
-    dimension. The return type will be the same as the element type of `src` if it is a float type, or `Float64`
+    dimension. The return type will be the same as the element type of `src` if it is a float type, or `Float32`
     if it is an integer type.
     ## CPU settings
     Use at most `max_tasks` threads with at least `min_elems` elements per task. For N-dimensional
@@ -156,7 +156,7 @@ end
 
     Compute the varience of `src` along dimensions `dims`.
     If `dims` is `nothing`, reduce `src` to a scalar. If `dims` is an integer, reduce `src` along that
-    dimension. The return type will be the same as the element type of `src` if it is a float type, or `Float64`
+    dimension. The return type will be the same as the element type of `src` if it is a float type, or `Float32`
     if it is an integer type.
     ## CPU settings
     Use at most `max_tasks` threads with at least `min_elems` elements per task. For N-dimensional
