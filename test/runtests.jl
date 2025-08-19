@@ -67,6 +67,7 @@ end
     Aqua.test_all(AK)
 end
 
+include("statistics.jl")
 include("partition.jl")
 include("looping.jl")
 include("map.jl")
@@ -75,4 +76,3 @@ include("reduce.jl")
 include("accumulate.jl")
 include("predicates.jl")
 include("binarysearch.jl")
-include("statistics.jl")

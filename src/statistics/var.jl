@@ -1,3 +1,29 @@
+@kernel function slicing_mean1d!(src,m)
+    i = @index(Global, Linear)
+    src[i] -= m[i]
+end
+@kernel function slicing_mean2d!(src,m,dims)
+    @assert 1<=dims<=2
+    i,j = @index(Global, NTuple)
+    if dims == 1
+        src[i,j] -= m[i]
+    else
+        src[i,j] -= m[j]
+    end
+end
+@kernel function slicing_mean3d!(src,m,dims)
+    @assert 1<=dims<=3
+    i,j,k = @index(Global, NTuple)
+    if dims == 1
+        src[i,j,k] -= m[i]
+    elseif dims == 2
+        src[i,j,k] -= m[j]
+    else
+        src[i,j,k] -= m[k]
+    end
+end
+
+
 """
     var!(
         src::AbstractArray{T}, backend::Backend=get_backend(src);
@@ -38,7 +64,7 @@
     CPU and is only used for 1D reductions (i.e. `dims=nothing`).
 """
 function var!(
-    src::AbstractArray{T},backend::Backend=get_backend(src);
+    src::AbstractArray{T,N},backend::Backend=get_backend(src);
     dims::Union{Nothing, Int}=nothing,
     corrected ::Bool = true,
     # CPU settings - ignored here
@@ -50,7 +76,7 @@ function var!(
     block_size::Int = 256,
     temp::Union{Nothing, AbstractArray} = nothing,
     switch_below::Int=0,
-)  where {T<:Real}  
+)  where {T<:Real,N}  
     m = mean(
         src,backend;
         dims=dims,
@@ -67,8 +93,18 @@ function var!(
         src = Float32.(src)
     end
     # use a special kernel ? what if more than 3 dims ?
-    for sl in eachslice(src,dims=dims)
-        sl .-= selectdim(m,dims,1)
+    if backend isa GPU && N<=3
+        if N == 1
+            slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
+        elseif N == 2
+            slicing_mean2d!(backend,block_size)(src,m,dims;ndrange=size(src))
+        elseif N == 3
+            slicing_mean3d!(backend,block_size)(src,m,dims;ndrange=size(src))
+        end
+    else
+        for sl in eachslice(src,dims=dims)
+            sl .-= selectdim(m,dims,1)
+        end
     end
     res = mapreduce(x->x*x,+,src,backend;
             init=zero(eltype(src)),
