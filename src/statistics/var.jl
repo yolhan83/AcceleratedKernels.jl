@@ -1,25 +1,43 @@
-@kernel function slicing_mean1d!(src,m)
-    i = @index(Global, Linear)
-    src[i] -= m
-end
-@kernel function slicing_mean2d!(src,m,dims)
-    @assert 1<=dims<=2
-    i,j = @index(Global, NTuple)
-    if dims == 1
-        src[i,j] -= m[1,j]
-    else
-        src[i,j] -= m[i,1]
+@kernel inbounds=true cpu=false unsafe_indices=true function slicing_mean1d!(src,m)
+    N = @groupsize()[1]
+    iblock = @index(Group, Linear)
+    ithread = @index(Local, Linear)
+    i = ithread + (iblock - 0x1) * N
+    if i <= length(src)
+        src[i] -= m
     end
 end
-@kernel function slicing_mean3d!(src,m,dims)
+@kernel inbounds=true cpu=false unsafe_indices=true function slicing_mean2d!(src,m,dims)
+    @assert 1<=dims<=2
+    Nx,Ny = @groupsize()
+    iblock,jblock = @index(Group, NTuple)
+    ithread,jthread = @index(Local, NTuple)
+    i = ithread + (iblock - 0x1) * Nx
+    j = jthread + (jblock - 0x1) * Ny
+    if i<=size(src,1) && j<=size(src,2)
+        if dims == 1
+            src[i,j] -= m[1,j]
+        else
+            src[i,j] -= m[i,1]
+        end
+    end
+end
+@kernel inbounds=true cpu=false unsafe_indices=true function slicing_mean3d!(src,m,dims)
     @assert 1<=dims<=3
-    i,j,k = @index(Global, NTuple)
-    if dims == 1
-        src[i,j,k] -= m[1,j,k]
-    elseif dims == 2
-        src[i,j,k] -= m[i,1,k]
-    else
-        src[i,j,k] -= m[i,j,1]
+    Nx,Ny,Nz = @groupsize()
+    iblock,jblock,kblock = @index(Group, NTuple)
+    ithread,jthread,kthread = @index(Local, NTuple)
+    i = ithread + (iblock - 0x1) * Nx
+    j = jthread + (jblock - 0x1) * Ny
+    k = kthread + (kblock - 0x1) * Nz
+    if i<=size(src,1) && j<=size(src,2) && k<=size(src,3)
+        if dims == 1
+            src[i,j,k] -= m[1,j,k]
+        elseif dims == 2
+            src[i,j,k] -= m[i,1,k]
+        else
+            src[i,j,k] -= m[i,j,1]
+        end
     end
 end
 
