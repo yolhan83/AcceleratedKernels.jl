@@ -113,11 +113,11 @@ function var!(
     # use a special kernel ? what if more than 3 dims ?
     if backend isa GPU && N<=3
         if N == 1
-            slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
+            _slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
         elseif N == 2
-            slicing_mean2d!(backend,block_size)(src,m,dims;ndrange=size(src))
+            _slicing_mean2d!(backend,block_size)(src,m,dims;ndrange=size(src))
         elseif N == 3
-            slicing_mean3d!(backend,block_size)(src,m,dims;ndrange=size(src))
+            _slicing_mean3d!(backend,block_size)(src,m,dims;ndrange=size(src))
         end
     else
         for sl in eachslice(src,dims=dims)
