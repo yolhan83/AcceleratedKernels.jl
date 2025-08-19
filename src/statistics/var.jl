@@ -148,7 +148,8 @@ function var!(
         res /= (length(src) - ifelse(corrected , 1 , 0))
         return res 
     end
-    res ./= (size(src,dims) - ifelse(corrected , 1 , 0))
+    s = 1/ (size(src,dims) - ifelse(corrected , 1 , 0))
+    res .*= s
     return res
 end
 
