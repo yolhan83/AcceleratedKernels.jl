@@ -58,7 +58,11 @@ function mean(
             block_size=block_size,
             temp=temp,
             switch_below=switch_below)
-    return res ./ size(src,dims)
+    if isnothing(dims)
+        return res./length(src)
+    else
+        return res./size(src,dims)
+    end
 end
 
 function mean(
@@ -84,5 +88,9 @@ function mean(
             block_size=block_size,
             temp=temp,
             switch_below=switch_below)
-    return res./size(src,dims)
+    if isnothing(dims)
+        return res./length(src)
+    else
+        return res./size(src,dims)
+    end
 end
