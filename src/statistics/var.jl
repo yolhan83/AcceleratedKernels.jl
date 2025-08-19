@@ -148,7 +148,7 @@ function var!(
         res /= (length(src) - ifelse(corrected , 1 , 0))
         return res 
     end
-    s = 1/ (size(src,dims) - ifelse(corrected , 1 , 0))
+    s = eltype(src)(1)/ (size(src,dims) - ifelse(corrected , 1 , 0))
     res .*= s
     return res
 end
