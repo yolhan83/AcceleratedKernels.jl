@@ -11,11 +11,11 @@
                     d = AK.mean(s; prefer_threads,  dims)
                     dh = Array(d)
                     @test dh ≈ mean(sh;  dims)
-                    @test eltype(dh) == eltype(mean(sh; dims))
+                    @test eltype(dh) == eltype(mean(sh; dims)) || eltype(dh) == Float32
                     d = AK.mean(s; prefer_threads,  dims)
                     dh = Array(d)
                     @test dh ≈ mean(sh;  dims)
-                    @test eltype(dh) == eltype(mean(sh; dims))
+                    @test eltype(dh) == eltype(mean(sh; dims)) || eltype(dh) == Float32
                 end
             end
         end
@@ -85,7 +85,7 @@
         prefer_threads,
         dims=2,
         block_size=64,
-        temp=array_from_host(zeros(Float64, 3, 1, 5)),
+        temp=array_from_host(zeros(Float32, 3, 1, 5)),
         switch_below=50,
         max_tasks=10,
         min_elems=100,
@@ -96,7 +96,7 @@
         prefer_threads,
         dims=3,
         block_size=64,
-        temp=array_from_host(zeros(Float64, 3, 4, 1)),
+        temp=array_from_host(zeros(Float32, 3, 4, 1)),
         switch_below=50,
         max_tasks=16,
         min_elems=1000,
@@ -116,12 +116,12 @@ end
                     d = AK.var(s; prefer_threads,  dims)
                     dh = Array(d)
                     @test dh ≈ var(sh;  dims)
-                    @test eltype(dh) == eltype(var(sh; dims))
+                    @test eltype(dh) == eltype(var(sh; dims)) || eltype(dh) == Float32
                     tv =  var(sh;  dims)
                     d = AK.var!(s; prefer_threads,  dims)
                     dh = Array(d)
                     @test dh ≈ tv
-                    @test eltype(dh) == eltype(var(sh; dims))
+                    @test eltype(dh) == eltype(var(sh; dims)) || eltype(dh) == Float32
                 end
             end
         end
@@ -192,7 +192,7 @@ end
         dims=2,
         corrected=true,
         block_size=64,
-        temp=array_from_host(zeros(Float64, 3, 1, 5)),
+        temp=array_from_host(zeros(Float32, 3, 1, 5)),
         switch_below=50,
         max_tasks=10,
         min_elems=100,
@@ -203,7 +203,7 @@ end
         dims=3,
         corrected=false,
         block_size=64,
-        temp=array_from_host(zeros(Float64, 3, 4, 1)),
+        temp=array_from_host(zeros(Float32, 3, 4, 1)),
         switch_below=50,
         max_tasks=16,
         min_elems=1000,

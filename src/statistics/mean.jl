@@ -48,7 +48,7 @@ function mean(
     temp::Union{Nothing, AbstractArray} = nothing,
     switch_below::Int=0,
 )  where {T<:Real}  
-    init = T<:Integer ? zero(Float64) : zero(T)
+    init = T<:Integer ? zero(Float32) : zero(T)
     res = mapreduce(f,+,src,backend;
             init=init,
             dims=dims,
@@ -74,7 +74,7 @@ function mean(
     temp::Union{Nothing, AbstractArray} = nothing,
     switch_below::Int=0,
 )  where {T<:Real}  
-    init = T<:Integer ? zero(Float64) : zero(T)
+    init = T<:Integer ? zero(Float32) : zero(T)
     res = reduce(+,src,backend;
             init=init,
             dims=dims,

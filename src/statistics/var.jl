@@ -64,7 +64,7 @@ function var!(
         switch_below = switch_below
     )
     if T<:Integer
-        src = Float64.(src)
+        src = Float32.(src)
     end
     # use a special kernel ? what if more than 3 dims ?
     for sl in eachslice(src,dims=dims)
