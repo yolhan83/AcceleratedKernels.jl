@@ -1,25 +1,25 @@
 @kernel function slicing_mean1d!(src,m)
     i = @index(Global, Linear)
-    src[i] -= m[i]
+    src[i] -= m
 end
 @kernel function slicing_mean2d!(src,m,dims)
     @assert 1<=dims<=2
     i,j = @index(Global, NTuple)
     if dims == 1
-        src[i,j] -= m[i]
+        src[i,j] -= m[1,j]
     else
-        src[i,j] -= m[j]
+        src[i,j] -= m[i,1]
     end
 end
 @kernel function slicing_mean3d!(src,m,dims)
     @assert 1<=dims<=3
     i,j,k = @index(Global, NTuple)
     if dims == 1
-        src[i,j,k] -= m[i]
+        src[i,j,k] -= m[1,j,k]
     elseif dims == 2
-        src[i,j,k] -= m[j]
+        src[i,j,k] -= m[i,1,k]
     else
-        src[i,j,k] -= m[k]
+        src[i,j,k] -= m[i,j,1]
     end
 end
 
