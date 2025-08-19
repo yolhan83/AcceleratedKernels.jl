@@ -1,4 +1,4 @@
-@kernel inbounds=true unsafe_indices=true function _slicing_mean1d!(src,m)
+@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_mean1d!(src,@Const(m))
     N = @groupsize()[1]
     iblock = @index(Group, Linear)
     ithread = @index(Local, Linear)
@@ -9,9 +9,7 @@
 end
 
 # N-D version: m is an array with size(m, dims) == 1
-@kernel inbounds=true unsafe_indices=true function _slicing_meannd!(src, m, dims)
-    @assert 1 <= dims <= ndims(src)
-
+@kernel inbounds=true cpu=false unsafe_indices=true function _slicing_meannd!(src, @Const(m), @Const(dims))
     # Shapes/strides
     src_strides = strides(src)
     m_strides   = strides(m)
@@ -111,15 +109,19 @@ function var!(
         src = Float32.(src)
     end
     # use a special kernel ? what if more than 3 dims ?
-    if backend isa GPU
-        if N == 1
-            _slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
-        else 
-            _slicing_meannd!(backend,block_size)(src,m,dims;ndrange=size(src))
-        end
+    if isnothing(dims)
+        src .-= m
     else
-        for sl in eachslice(src,dims=dims)
-            sl .-= selectdim(m,dims,1)
+        if backend isa GPU
+            if N == 1
+                _slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
+            else 
+                _slicing_meannd!(backend,block_size)(src,m,dims;ndrange=size(src))
+            end
+        else
+            for sl in eachslice(src,dims=dims)
+                sl .-= selectdim(m,dims,1)
+            end
         end
     end
     res = mapreduce(x->x*x,+,src,backend;
@@ -131,6 +133,9 @@ function var!(
             block_size=block_size,
             temp=temp,
             switch_below=switch_below)
+    if isnothing(dims)
+        return res ./ (length(src) - ifelse(corrected , 1 , 0))
+    end
     res ./= (size(src,dims) - ifelse(corrected , 1 , 0))
     return res
 end

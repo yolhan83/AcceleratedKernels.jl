@@ -83,6 +83,17 @@
         x->x ,
         array_from_host(rand(Int32, 3, 4, 5));
         prefer_threads,
+        dims=nothing,
+        block_size=64,
+        temp=nothing,
+        switch_below=50,
+        max_tasks=10,
+        min_elems=100,
+    )
+    AK.mean(
+        x->x ,
+        array_from_host(rand(Int32, 3, 4, 5));
+        prefer_threads,
         dims=2,
         block_size=64,
         temp=array_from_host(zeros(Float32, 3, 1, 5)),
@@ -186,6 +197,17 @@ end
     @test_throws MethodError AK.var(array_from_host(rand(Int32, 10, 10)); prefer_threads,bad=:kwarg)
 
     # Testing different settings
+    AK.var(
+        array_from_host(rand(Int32, 3, 4, 5));
+        prefer_threads,
+        dims=nothing,
+        corrected=true,
+        block_size=64,
+        temp=nothing,
+        switch_below=50,
+        max_tasks=10,
+        min_elems=100,
+    )
     AK.var(
         array_from_host(rand(Int32, 3, 4, 5));
         prefer_threads,
