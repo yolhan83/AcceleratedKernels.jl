@@ -1,5 +1,6 @@
 import AcceleratedKernels as AK
 using KernelAbstractions
+using Statistics
 using Test
 using Random
 import Pkg
@@ -74,3 +75,4 @@ include("reduce.jl")
 include("accumulate.jl")
 include("predicates.jl")
 include("binarysearch.jl")
+include("statistics.jl")
