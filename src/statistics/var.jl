@@ -8,34 +8,26 @@
     end
 end
 
-# N-D version: m is an array with size(m, dims) == 1
+
 @kernel inbounds=true cpu=false unsafe_indices=true function _slicing_meannd!(src, @Const(m), @Const(dims))
-    # Shapes/strides
     src_strides = strides(src)
     m_strides   = strides(m)
     nd          = length(src_strides)
-
-    # Group/thread indices (zero-based, like your mapreduce kernel)
     N       = @groupsize()[1]
     iblock  = @index(Group, Linear) - 0x1
     ithread = @index(Local, Linear) - 0x1
     tid     = ithread + iblock * N
 
     if tid < length(src)
-        # Reconstruct multi-index of src from linear tid using strides,
-        # and build the matching linear index into m by ignoring the reduced dim.
         tmp    = tid
-        midx0  = typeof(tid)(0)  # zero-based linear index into m
-
+        midx0  = typeof(tid)(0)  
         KernelAbstractions.Extras.@unroll for i in nd:-1i16:1i16
-            idxi = tmp ÷ src_strides[i]   # coordinate along dimension i (zero-based)
+            idxi = tmp ÷ src_strides[i]   
             if i != dims
                 midx0 += idxi * m_strides[i]
             end
             tmp = tmp % src_strides[i]
         end
-
-        # Subtract: src linear index is tid+1 (1-based), m uses midx0+1 with reduced axis fixed to 1
         src[tid + 0x1] -= m[midx0 + 0x1]
     end
 end
@@ -108,19 +100,38 @@ function var!(
     if T<:Integer
         src = Float32.(src)
     end
-    # use a special kernel ? what if more than 3 dims ?
     if isnothing(dims)
         src .-= m
     else
-        if backend isa GPU
+        if use_gpu_algorithm(backend, prefer_threads)
             if N == 1
                 _slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
             else 
                 _slicing_meannd!(backend,block_size)(src,m,dims;ndrange=size(src))
             end
         else
-            for sl in eachslice(src,dims=dims)
-                sl .-= selectdim(m,dims,1)
+            if N ==1
+                foreachindex(src; max_tasks=max_tasks, min_elems=min_elems) do i
+                    src[i] -= m
+                end
+            else
+                src_strides = strides(src)
+                m_strides   = strides(m)
+                nd          = length(src_strides)
+                foreachindex(src; max_tasks=max_tasks, min_elems=min_elems) do isrc
+                    @inbounds begin
+                        tmp   = isrc - 1
+                        midx0 = 0
+                        KernelAbstractions.Extras.@unroll for i in nd:-1:1
+                            idxi = tmp ÷ src_strides[i]
+                            if i != dims
+                                midx0 += idxi * m_strides[i]
+                            end
+                            tmp = tmp % src_strides[i]
+                        end
+                        src[isrc] -= m[midx0 + 1]
+                    end
+                end
             end
         end
     end
@@ -134,7 +145,8 @@ function var!(
             temp=temp,
             switch_below=switch_below)
     if isnothing(dims)
-        return res ./ (length(src) - ifelse(corrected , 1 , 0))
+        res /= (length(src) - ifelse(corrected , 1 , 0))
+        return res 
     end
     res ./= (size(src,dims) - ifelse(corrected , 1 , 0))
     return res
