@@ -31,6 +31,23 @@ end
         src[tid + 0x1] -= m[midx0 + 0x1]
     end
 end
+function _slicing_meannd_cpu!(src::AbstractArray{T,N}, m, dims::Int;max_tasks,min_elems) where {T<:Real, N}
+    src_strides ::NTuple{N,Int} = strides(src)
+    m_strides  ::NTuple{N,Int} = strides(m)
+    nd          = length(src_strides)
+    foreachindex(src; max_tasks=max_tasks, min_elems=min_elems) do isrc
+        tmp   = isrc - 1
+        midx0  = 0
+        KernelAbstractions.Extras.@unroll for i in nd:-1:1
+            @inbounds idxi = tmp ÷ src_strides[i]
+            if i != dims
+                @inbounds midx0 += idxi * m_strides[i]
+            end
+            @inbounds tmp = tmp % src_strides[i]
+        end
+        @inbounds src[isrc] -= m[midx0 + 1]
+    end
+end
 
 """
     var!(
@@ -105,9 +122,9 @@ function var!(
     else
         if use_gpu_algorithm(backend, prefer_threads)
             if N == 1
-                _slicing_mean1d!(backend,block_size)(src,m;ndrange=size(src))
+                _slicing_mean1d!(backend,block_size)(src,m;ndrange=length(src))
             else 
-                _slicing_meannd!(backend,block_size)(src,m,dims;ndrange=size(src))
+                _slicing_meannd!(backend,block_size)(src,m,dims;ndrange=length(src))
             end
         else
             if N ==1
@@ -115,36 +132,21 @@ function var!(
                     src[i] -= m
                 end
             else
-                src_strides = strides(src)
-                m_strides   = strides(m)
-                nd          = length(src_strides)
-                foreachindex(src; max_tasks=max_tasks, min_elems=min_elems) do isrc
-                    @inbounds begin
-                        tmp   = isrc - 1
-                        midx0 = 0
-                        KernelAbstractions.Extras.@unroll for i in nd:-1:1
-                            idxi = tmp ÷ src_strides[i]
-                            if i != dims
-                                midx0 += idxi * m_strides[i]
-                            end
-                            tmp = tmp % src_strides[i]
-                        end
-                        src[isrc] -= m[midx0 + 1]
-                    end
-                end
+                _slicing_meannd_cpu!(src,m,dims;max_tasks=max_tasks,min_elems=min_elems)
             end
         end
     end
+    ntmp = isnothing(dims) ? nothing : m
     res = mapreduce(x->x*x,+,src,backend;
-            init=zero(eltype(src)),
-            dims=dims,
-            max_tasks=max_tasks,
-            min_elems=min_elems,
-            prefer_threads=prefer_threads,
-            block_size=block_size,
-            temp=temp,
-            switch_below=switch_below)
-    if isnothing(dims)
+        init=zero(eltype(src)),
+        dims=dims,
+        max_tasks=max_tasks,
+        min_elems=min_elems,
+        prefer_threads=prefer_threads,
+        block_size=block_size,
+        temp=ntmp,
+        switch_below=switch_below)
+    if isnothing(dims) || N == 1
         res /= (length(src) - ifelse(corrected , 1 , 0))
         return res 
     end
